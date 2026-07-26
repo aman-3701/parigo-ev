@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const db = require('../../db');
+const axios = require('axios');
 
 const createRide = async (req, res) => {
   const { uid, pickup, destination, scheduledTime, scheduledDate, estimatedFare, estimatedDistance, estimatedDuration, isScheduled, paymentMethod } = req.body;
@@ -210,7 +211,41 @@ const estimateFare = async (req, res) => {
       return res.status(400).json({ error: 'Pickup and destination are required' });
     }
 
-    const distanceKm = getDistanceFromLatLonInKm(pickup.lat, pickup.lng, destination.lat, destination.lng);
+    let distanceKm = 0;
+
+    // 1. Attempt to get road distance from Ola Maps Routing API
+    try {
+      if (process.env.OLA_MAPS_API_KEY) {
+        const olaResponse = await axios.post(`https://api.olamaps.io/routing/v1/directions`, null, {
+          params: {
+            origin: `${pickup.lat},${pickup.lng}`,
+            destination: `${destination.lat},${destination.lng}`,
+            api_key: process.env.OLA_MAPS_API_KEY
+          },
+          headers: {
+            'X-Request-Id': Date.now().toString()
+          }
+        });
+        
+        if (olaResponse.data && olaResponse.data.routes && olaResponse.data.routes.length > 0) {
+          // Typically distance is in meters inside routes[0].legs[0].distance
+          const distanceVal = olaResponse.data.routes[0].legs[0].distance;
+          if (distanceVal != null) {
+            distanceKm = distanceVal / 1000;
+          } else {
+             // Fallback just in case the key is named differently in the response structure
+             console.warn('Distance field not found in Ola Maps response, falling back.');
+          }
+        }
+      }
+    } catch (olaError) {
+      console.error('Ola Maps Routing API failed, falling back to Haversine:', olaError.message);
+    }
+
+    // 2. Fallback to Haversine if Ola Maps failed or returned nothing
+    if (distanceKm === 0) {
+      distanceKm = getDistanceFromLatLonInKm(pickup.lat, pickup.lng, destination.lat, destination.lng);
+    }
     
     // Base fare: 50 for up to 2km, then 18.99/km
     const baseFare = 50;
