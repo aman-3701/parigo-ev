@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/ola_routing_service.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
@@ -32,7 +32,7 @@ class _CustomerActiveRideScreenState extends State<CustomerActiveRideScreen> {
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   
-
+  final PolylinePoints _polylinePoints = PolylinePoints(apiKey: ApiKeys.googleMapsKey);
   bool _isRouteDrawn = false;
 
   @override
@@ -122,12 +122,19 @@ class _CustomerActiveRideScreenState extends State<CustomerActiveRideScreen> {
     if (_driverLocation == null) return;
     
     // Draw route once from driver to pickup
-    List<LatLng> polylineCoordinates = await OlaRoutingService.getRoute(
-      _driverLocation!,
-      _pickupLocation
+    PolylineResult result = await _polylinePoints.getRouteBetweenCoordinates(
+      request: PolylineRequest(
+          origin: PointLatLng(_driverLocation!.latitude, _driverLocation!.longitude),
+          destination: PointLatLng(_pickupLocation.latitude, _pickupLocation.longitude),
+          mode: TravelMode.driving
+      )
     );
 
-    if (polylineCoordinates.isNotEmpty) {
+    if (result.points.isNotEmpty) {
+      List<LatLng> polylineCoordinates = [];
+      for (var point in result.points) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      }
 
       setState(() {
         _polylines = {
