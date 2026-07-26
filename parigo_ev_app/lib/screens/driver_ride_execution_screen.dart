@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import '../services/ola_routing_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
@@ -47,8 +47,6 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
   Set<Polyline> _polylines = {};
 
   StreamSubscription<Position>? _positionStreamSubscription;
-  final PolylinePoints _polylinePoints =
-      PolylinePoints(apiKey: ApiKeys.googleMapsKey);
 
   @override
   void initState() {
@@ -277,20 +275,12 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
         : _pickupLocation;
 
     if (_currentState != RideExecutionState.completed) {
-      PolylineResult result = await _polylinePoints.getRouteBetweenCoordinates(
-        request: PolylineRequest(
-            origin: PointLatLng(
-                _driverLocation!.latitude, _driverLocation!.longitude),
-            destination: PointLatLng(
-                targetDestination.latitude, targetDestination.longitude),
-            mode: TravelMode.driving),
+      List<LatLng> polylineCoordinates = await OlaRoutingService.getRoute(
+        _driverLocation!,
+        targetDestination
       );
 
-      if (result.points.isNotEmpty) {
-        List<LatLng> polylineCoordinates = [];
-        for (var point in result.points) {
-          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-        }
+      if (polylineCoordinates.isNotEmpty) {
 
         _polylines = {
           Polyline(

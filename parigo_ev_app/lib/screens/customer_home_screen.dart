@@ -21,6 +21,7 @@ import '../widgets/parigo_logo.dart';
 import '../widgets/location_disclosure_dialog.dart';
 import 'package:parigo_ev_app/core/api_client.dart';
 import '../core/deep_link_handler.dart';
+import '../services/ola_routing_service.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({Key? key}) : super(key: key);
@@ -291,35 +292,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
     return 'Lat: ${pos.latitude.toStringAsFixed(4)}, Lng: ${pos.longitude.toStringAsFixed(4)}';
   }
 
-  List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> points = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      points.add(LatLng(lat / 1E5, lng / 1E5));
-    }
-    return points;
-  }
 
   Future<void> _fetchRouteAndDraw(Map<String, dynamic> destination) async {
     final double pLat = _customPickupPosition?.latitude ??
@@ -334,26 +306,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
     final double dLng = destination['lng'] as double;
     final String dDesc = destination['description'] ?? 'Destination';
 
-    // Use Google Maps Directions API for routing
+    // Use Ola Maps Routing API for routing
     try {
-      final url =
-          'https://maps.googleapis.com/maps/api/directions/json?origin=$pLat,$pLng&destination=$dLat,$dLng&key=${ApiKeys.googleMapsKey}';
-      final response = await ApiClient.get(Uri.parse(url));
-
-      List<LatLng> routePoints = [];
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
-          final pointsString = data['routes'][0]['overview_polyline']['points'];
-          routePoints = _decodePolyline(pointsString);
-        }
-      }
-
-      // Fallback to straight line if API fails
-      if (routePoints.isEmpty) {
-        routePoints = [LatLng(pLat, pLng), LatLng(dLat, dLng)];
-      }
+      List<LatLng> routePoints = await OlaRoutingService.getRoute(
+        LatLng(pLat, pLng), 
+        LatLng(dLat, dLng)
+      );
 
       setState(() {
         final newMarker = Marker(
