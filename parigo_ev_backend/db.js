@@ -151,6 +151,17 @@ const initDb = async () => {
     await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS ride_start_time TIMESTAMP;');
     await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS customer_wait_penalty DECIMAL(10, 2) DEFAULT 0.0;');
     await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS driver_late_penalty DECIMAL(10, 2) DEFAULT 0.0;');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS display_id VARCHAR(100);');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS pickup_address TEXT;');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS dropoff_address TEXT;');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS stops JSONB;');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS booking_time TIMESTAMP;');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP;');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS duration_mins INTEGER;');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS distance_km DECIMAL(10, 2);');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS base_fare DECIMAL(10, 2);');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS gst_amount DECIMAL(10, 2);');
+    await pool.query('ALTER TABLE rides_history ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(255);');
 
     await pool.query(createWalletsTable);
     await pool.query(createWalletTransactionsTable);

@@ -65,14 +65,18 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'Unknown Date';
     try {
-      // Handle Firestore timestamp format {_seconds, _nanoseconds}
       if (timestamp is Map && timestamp['_seconds'] != null) {
         final date = DateTime.fromMillisecondsSinceEpoch(timestamp['_seconds'] * 1000);
         return DateFormat('MMM dd, yyyy • hh:mm a').format(date);
       }
-      return 'Unknown Date';
+      if (timestamp is int) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        return DateFormat('MMM dd, yyyy • hh:mm a').format(date);
+      }
+      final date = DateTime.parse(timestamp.toString());
+      return DateFormat('MMM dd, yyyy • hh:mm a').format(date);
     } catch (e) {
-      return 'Unknown Date';
+      return timestamp.toString();
     }
   }
 
@@ -125,29 +129,31 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
     final status = ride['status'] ?? 'UNKNOWN';
     final isCompleted = status == 'COMPLETED';
     String pickup = 'Unknown Pickup';
-    if (ride['pickup'] is Map) {
-      pickup = ride['pickup']['description'] ?? ride['pickup']['address'] ?? 'Unknown Pickup';
-    } else if (ride['pickup'] is String) {
+    final pData = ride['pickup'] ?? ride['pickupLocation'];
+    if (pData is Map) {
+      pickup = pData['description'] ?? pData['address'] ?? 'Unknown Pickup';
+    } else if (pData is String) {
       try {
-        final map = jsonDecode(ride['pickup']);
-        pickup = map['description'] ?? map['address'] ?? ride['pickup'];
+        final map = jsonDecode(pData);
+        pickup = map['description'] ?? map['address'] ?? pData;
       } catch (_) {
-        pickup = ride['pickup'];
+        pickup = pData;
       }
     }
 
     String dropoff = 'Unknown Dropoff';
-    if (ride['destination'] is Map) {
-      dropoff = ride['destination']['description'] ?? ride['destination']['address'] ?? 'Unknown Dropoff';
-    } else if (ride['destination'] is String) {
+    final dData = ride['destination'] ?? ride['dropoffLocation'];
+    if (dData is Map) {
+      dropoff = dData['description'] ?? dData['address'] ?? 'Unknown Dropoff';
+    } else if (dData is String) {
       try {
-        final map = jsonDecode(ride['destination']);
-        dropoff = map['description'] ?? map['address'] ?? ride['destination'];
+        final map = jsonDecode(dData);
+        dropoff = map['description'] ?? map['address'] ?? dData;
       } catch (_) {
-        dropoff = ride['destination'];
+        dropoff = dData;
       }
     }
-    final fare = ride['finalFare']?.toString() ?? ride['estimatedFare']?.toString() ?? '0.00';
+    final fare = ride['finalFare']?.toString() ?? ride['estimatedFare']?.toString() ?? ride['fare']?.toString() ?? '0.00';
     final waitPenalty = ride['customerWaitPenalty'];
     final latePenalty = ride['driverLatePenalty'];
     final dateStr = _formatDate(ride['createdAt']);
@@ -213,11 +219,6 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
                     Text(fare, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.onSurface)),
                   ],
                 ),
-                if (waitPenalty != null && waitPenalty > 0)
-                   Padding(
-                     padding: const EdgeInsets.only(top: 4.0),
-                     child: Text('+ ₹$waitPenalty Wait Time Charge', style: const TextStyle(color: Colors.redAccent, fontSize: 14)),
-                   ),
                 if (latePenalty != null && latePenalty > 0)
                    Padding(
                      padding: const EdgeInsets.only(top: 4.0),

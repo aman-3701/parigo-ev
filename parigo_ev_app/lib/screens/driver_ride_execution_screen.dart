@@ -59,7 +59,6 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
       final status = widget.rideData!['status'];
       if (status == 'ARRIVED') {
         _currentState = RideExecutionState.arrived;
-        _startWaitTimer();
       } else if (status == 'IN_PROGRESS') {
         _currentState = RideExecutionState.inProgress;
       } else if (status == 'COMPLETED' || status == 'PENDING_PAYMENT') {
@@ -70,39 +69,11 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
   }
 
   Map<String, dynamic>? _updatedRideData;
-  Timer? _waitTimer;
-  int _waitSeconds = 0;
-
-  void _startWaitTimer() {
-    _waitTimer?.cancel();
-    _waitTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _waitSeconds++;
-        });
-      }
-    });
-  }
-
-  String _formatWaitTime(int seconds) {
-    if (seconds <= 180) {
-      final remaining = 180 - seconds;
-      final m = remaining ~/ 60;
-      final s = remaining % 60;
-      return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-    } else {
-      final overtime = seconds - 180;
-      final m = overtime ~/ 60;
-      final s = overtime % 60;
-      return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-    }
-  }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _positionStreamSubscription?.cancel();
-    _waitTimer?.cancel();
     super.dispose();
   }
 
@@ -272,6 +243,20 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
                 BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)),
     };
 
+    List<PolylineWayPoint> waypoints = [];
+    if (_currentState == RideExecutionState.inProgress && widget.rideData != null && widget.rideData!['stops'] != null) {
+       final stops = widget.rideData!['stops'] as List<dynamic>;
+       for (int i=0; i<stops.length; i++) {
+          _markers.add(Marker(
+            markerId: MarkerId('stop_$i'),
+            position: LatLng(stops[i]['lat'], stops[i]['lng']),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            infoWindow: InfoWindow(title: 'Stop ${i+1}'),
+          ));
+          waypoints.add(PolylineWayPoint(location: '${stops[i]['lat']},${stops[i]['lng']}', stopOver: true));
+       }
+    }
+
     LatLng targetDestination = (_currentState == RideExecutionState.inProgress)
         ? _dropoffLocation
         : _pickupLocation;
@@ -283,6 +268,7 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
                 _driverLocation!.latitude, _driverLocation!.longitude),
             destination: PointLatLng(
                 targetDestination.latitude, targetDestination.longitude),
+            wayPoints: waypoints,
             mode: TravelMode.driving),
       );
 
@@ -366,7 +352,6 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
                       widget.rideData?['otp']?.toString() ?? '1234';
                   if (otpController.text == correctOtp) {
                     Navigator.pop(context);
-                    _waitTimer?.cancel();
                     setState(() {
                       _currentState = RideExecutionState.inProgress;
                     });
@@ -420,7 +405,6 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
       if (_currentState == RideExecutionState.allotted) {
         _currentState = RideExecutionState.arrived;
         _updateRideStatus('ARRIVED');
-        _startWaitTimer();
       } else if (_currentState == RideExecutionState.arrived) {
         _showOtpDialog();
       } else if (_currentState == RideExecutionState.inProgress) {
@@ -771,30 +755,6 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
                   ),
                   const SizedBox(height: 24),
 
-                  // Route Info
-                  if (_currentState == RideExecutionState.arrived) ...[
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(16)
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.timer, color: _waitSeconds <= 180 ? Colors.orangeAccent : Colors.greenAccent),
-                            const SizedBox(width: 8),
-                            Text(
-                              _waitSeconds <= 180 ? 'Waiting: ${_formatWaitTime(_waitSeconds)}' : 'Wait Penalty: +${_formatWaitTime(_waitSeconds)}',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _waitSeconds <= 180 ? Colors.orangeAccent : Colors.greenAccent)
-                            )
-                          ]
-                        )
-                      )
-                    ),
-                    const SizedBox(height: 24),
-                  ],
 
                   if (_currentState != RideExecutionState.completed) ...[
                     Row(
@@ -884,8 +844,7 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
                               style: GoogleFonts.nunito(
                                   fontSize: 24, color: Colors.greenAccent)),
                           const SizedBox(height: 8),
-                          if (_updatedRideData?['customerWaitPenalty'] != null && _updatedRideData!['customerWaitPenalty'] > 0)
-                             Text('+ ₹${_updatedRideData!['customerWaitPenalty']} Wait Time Charge', style: const TextStyle(color: Colors.redAccent, fontSize: 16)),
+
                           if (_updatedRideData?['driverLatePenalty'] != null && _updatedRideData!['driverLatePenalty'] > 0)
                              Text('- ₹${_updatedRideData!['driverLatePenalty']} Late Discount (50% Company Covered)', style: const TextStyle(color: Colors.greenAccent, fontSize: 16)),
                           const SizedBox(height: 8),

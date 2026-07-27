@@ -30,22 +30,46 @@ const getCustomerHistoryRides = async (req, res) => {
           // Merge from Postgres
           const pgRide = pgMap[ride.id];
           if (pgRide) {
-             ride.displayId = pgRide.display_id || ride.displayId;
+             ride.displayId = pgRide.display_id || ride.displayId || ride.id;
              ride.baseFare = pgRide.base_fare || ride.baseFare;
              ride.gstAmount = pgRide.gst_amount || ride.gstAmount;
              ride.distanceKm = pgRide.distance_km || ride.distanceKm;
              ride.durationMins = pgRide.duration_mins || ride.durationMins;
              ride.finalFare = pgRide.fare || ride.finalFare;
              ride.transactionId = pgRide.transaction_id || ride.transactionId;
+             if (pgRide.completed_at && !ride.completedAt) {
+               ride.completedAt = pgRide.completed_at;
+             }
+             if (pgRide.ride_start_time && !ride.rideStartTime) {
+               ride.rideStartTime = pgRide.ride_start_time;
+             }
+             if (pgRide.stops && (!ride.stops || ride.stops.length === 0)) {
+               try {
+                 ride.stops = typeof pgRide.stops === 'string' ? JSON.parse(pgRide.stops) : pgRide.stops;
+               } catch (_) {}
+             }
+          }
+
+          if (!ride.displayId) {
+             ride.displayId = ride.id;
+          }
+
+          // Format location objects for UI consistency
+          if (ride.pickup && !ride.pickupLocation) {
+             ride.pickupLocation = ride.pickup;
+          }
+          if (ride.destination && !ride.dropoffLocation) {
+             ride.dropoffLocation = ride.destination;
           }
 
           // Fetch driver details
           if (ride.assignedDriverId) {
-             const result = await db.query('SELECT name, phone, profile_picture_url FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
+             const result = await db.query('SELECT name, phone, profile_picture_url, vehicle_type FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
              if (result.rows.length > 0) {
                 ride.driverDetails = {
                   name: result.rows[0].name,
                   phone: result.rows[0].phone,
+                  vehicle_type: result.rows[0].vehicle_type,
                   profilePictureUrl: result.rows[0].profile_picture_url
                 };
              }

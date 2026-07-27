@@ -3,7 +3,7 @@ const db = require('../../db');
 const axios = require('axios');
 
 const createRide = async (req, res) => {
-  const { uid, pickup, destination, scheduledTime, scheduledDate, estimatedFare, estimatedDistance, estimatedDuration, isScheduled, paymentMethod } = req.body;
+  const { uid, pickup, destination, stops, scheduledTime, scheduledDate, estimatedFare, estimatedDistance, estimatedDuration, isScheduled, paymentMethod } = req.body;
   if (!uid || !pickup || !destination) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -20,6 +20,7 @@ const createRide = async (req, res) => {
       displayId: displayId,
       pickup: pickup,
       destination: destination,
+      stops: stops || [],
       scheduledTime: scheduledTime || null,
       scheduledDate: scheduledDate || null,
       estimatedFare: estimatedFare || 0.0,
@@ -95,28 +96,49 @@ const getHistory = async (req, res) => {
     );
 
     const rides = ridesRes.rows.map(row => {
+      let parsedStops = [];
+      if (row.stops) {
+        if (typeof row.stops === 'string') {
+          try { parsedStops = JSON.parse(row.stops); } catch (_) {}
+        } else if (Array.isArray(row.stops)) {
+          parsedStops = row.stops;
+        }
+      }
+
+      const pickupObj = {
+        lat: row.pickup_lat,
+        lng: row.pickup_lng,
+        address: row.pickup_address || 'Unknown Pickup',
+        description: row.pickup_address || 'Unknown Pickup'
+      };
+
+      const dropoffObj = {
+        lat: row.dropoff_lat,
+        lng: row.dropoff_lng,
+        address: row.dropoff_address || 'Unknown Dropoff',
+        description: row.dropoff_address || 'Unknown Dropoff'
+      };
+
       return {
         id: row.ride_id,
-        displayId: row.display_id,
+        displayId: row.display_id || row.ride_id,
         uid: row.customer_uid,
         assignedDriverId: row.driver_uid,
         status: row.status,
         fare: row.fare,
-        pickupLocation: {
-          lat: row.pickup_lat,
-          lng: row.pickup_lng,
-          address: row.pickup_address || 'Unknown Pickup'
-        },
-        dropoffLocation: {
-          lat: row.dropoff_lat,
-          lng: row.dropoff_lng,
-          address: row.dropoff_address || 'Unknown Dropoff'
-        },
+        finalFare: row.fare,
+        estimatedFare: row.fare,
+        pickup: pickupObj,
+        destination: dropoffObj,
+        pickupLocation: pickupObj,
+        dropoffLocation: dropoffObj,
+        stops: parsedStops,
         scheduledTime: row.scheduled_time,
-        createdAt: row.created_at, // Use created_at as completion time
+        createdAt: row.booking_time || row.scheduled_time || row.created_at,
+        completedAt: row.completed_at || row.created_at,
         driverArrivalTime: row.driver_arrival_time,
         rideStartTime: row.ride_start_time,
-        paymentMethod: row.payment_method,
+        paymentMethod: row.payment_method || 'CASH',
         transactionId: row.transaction_id,
         distanceKm: row.distance_km,
         durationMins: row.duration_mins,
@@ -206,7 +228,7 @@ function deg2rad(deg) {
 
 const estimateFare = async (req, res) => {
   try {
-    const { pickup, destination } = req.body;
+    const { pickup, destination, stops } = req.body;
     if (!pickup || !destination) {
       return res.status(400).json({ error: 'Pickup and destination are required' });
     }
@@ -216,24 +238,35 @@ const estimateFare = async (req, res) => {
     // 1. Attempt to get road distance from Ola Maps Routing API
     try {
       if (process.env.OLA_MAPS_API_KEY) {
+        const params = {
+          origin: `${pickup.lat},${pickup.lng}`,
+          destination: `${destination.lat},${destination.lng}`,
+          api_key: process.env.OLA_MAPS_API_KEY
+        };
+        
+        if (stops && Array.isArray(stops) && stops.length > 0) {
+           params.waypoints = stops.map(s => `${s.lat},${s.lng}`).join('|');
+        }
+
         const olaResponse = await axios.post(`https://api.olamaps.io/routing/v1/directions`, null, {
-          params: {
-            origin: `${pickup.lat},${pickup.lng}`,
-            destination: `${destination.lat},${destination.lng}`,
-            api_key: process.env.OLA_MAPS_API_KEY
-          },
+          params: params,
           headers: {
             'X-Request-Id': Date.now().toString()
           }
         });
         
         if (olaResponse.data && olaResponse.data.routes && olaResponse.data.routes.length > 0) {
-          // Typically distance is in meters inside routes[0].legs[0].distance
-          const distanceVal = olaResponse.data.routes[0].legs[0].distance;
-          if (distanceVal != null) {
-            distanceKm = distanceVal / 1000;
+          let totalMeters = 0;
+          if (olaResponse.data.routes[0].distance != null) {
+              totalMeters = olaResponse.data.routes[0].distance;
+          } else if (olaResponse.data.routes[0].legs) {
+              olaResponse.data.routes[0].legs.forEach(leg => {
+                  totalMeters += (leg.distance || 0);
+              });
+          }
+          if (totalMeters > 0) {
+            distanceKm = totalMeters / 1000;
           } else {
-             // Fallback just in case the key is named differently in the response structure
              console.warn('Distance field not found in Ola Maps response, falling back.');
           }
         }
@@ -244,7 +277,17 @@ const estimateFare = async (req, res) => {
 
     // 2. Fallback to Haversine if Ola Maps failed or returned nothing
     if (distanceKm === 0) {
-      distanceKm = getDistanceFromLatLonInKm(pickup.lat, pickup.lng, destination.lat, destination.lng);
+      let currentLat = pickup.lat;
+      let currentLng = pickup.lng;
+      
+      if (stops && Array.isArray(stops)) {
+        for (let stop of stops) {
+          distanceKm += getDistanceFromLatLonInKm(currentLat, currentLng, stop.lat, stop.lng);
+          currentLat = stop.lat;
+          currentLng = stop.lng;
+        }
+      }
+      distanceKm += getDistanceFromLatLonInKm(currentLat, currentLng, destination.lat, destination.lng);
     }
     
     // Base fare: 50 for up to 2km, then 18.99/km

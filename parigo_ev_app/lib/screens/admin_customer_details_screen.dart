@@ -66,11 +66,11 @@ class _AdminCustomerDetailsScreenState extends State<AdminCustomerDetailsScreen>
   Widget _buildRideCard(Map<String, dynamic> ride) {
     final bool isCompleted = ride['status'] == 'COMPLETED';
     final String status = ride['status'] ?? 'UNKNOWN';
-    final String pickup = ride['pickup']?['description'] ?? 'Unknown Pickup';
-    final String dropoff = ride['destination']?['description'] ?? 'Unknown Dropoff';
+    final String pickup = ride['pickup']?['description'] ?? ride['pickup']?['address'] ?? ride['pickupLocation']?['address'] ?? 'Unknown Pickup';
+    final String dropoff = ride['destination']?['description'] ?? ride['destination']?['address'] ?? ride['dropoffLocation']?['address'] ?? 'Unknown Dropoff';
     final String fare = ride['finalFare'] != null 
         ? ride['finalFare'].toString() 
-        : (ride['estimatedFare']?.toString() ?? '0.0');
+        : (ride['estimatedFare']?.toString() ?? ride['fare']?.toString() ?? '0.0');
     final waitPenalty = ride['customerWaitPenalty'];
     final latePenalty = ride['driverLatePenalty'];
     
@@ -140,11 +140,6 @@ class _AdminCustomerDetailsScreenState extends State<AdminCustomerDetailsScreen>
                     Text(fare, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.onSurface)),
                   ],
                 ),
-                if (waitPenalty != null && waitPenalty > 0)
-                   Padding(
-                     padding: const EdgeInsets.only(top: 4.0),
-                     child: Text('+ ₹$waitPenalty Wait Time Charge', style: const TextStyle(color: Colors.redAccent, fontSize: 14)),
-                   ),
                 if (latePenalty != null && latePenalty > 0)
                    Padding(
                      padding: const EdgeInsets.only(top: 4.0),

@@ -152,28 +152,49 @@ const getCompletedRides = async (req, res) => {
     const result = await db.query(query);
 
     const rides = result.rows.map(row => {
-      // Map postgres row to the JSON format expected by the frontend
+      let parsedStops = [];
+      if (row.stops) {
+        if (typeof row.stops === 'string') {
+          try { parsedStops = JSON.parse(row.stops); } catch (_) {}
+        } else if (Array.isArray(row.stops)) {
+          parsedStops = row.stops;
+        }
+      }
+
+      const pickupObj = {
+        lat: row.pickup_lat,
+        lng: row.pickup_lng,
+        address: row.pickup_address || 'Unknown Pickup',
+        description: row.pickup_address || 'Unknown Pickup'
+      };
+
+      const dropoffObj = {
+        lat: row.dropoff_lat,
+        lng: row.dropoff_lng,
+        address: row.dropoff_address || 'Unknown Dropoff',
+        description: row.dropoff_address || 'Unknown Dropoff'
+      };
+
       return {
         id: row.ride_id,
+        displayId: row.display_id || row.ride_id,
         uid: row.customer_uid,
         assignedDriverId: row.driver_uid,
         status: row.status,
         fare: row.fare,
-        pickupLocation: {
-          lat: row.pickup_lat,
-          lng: row.pickup_lng,
-          address: row.pickup_address || 'Unknown Pickup'
-        },
-        dropoffLocation: {
-          lat: row.dropoff_lat,
-          lng: row.dropoff_lng,
-          address: row.dropoff_address || 'Unknown Dropoff'
-        },
+        finalFare: row.fare,
+        estimatedFare: row.fare,
+        pickup: pickupObj,
+        destination: dropoffObj,
+        pickupLocation: pickupObj,
+        dropoffLocation: dropoffObj,
+        stops: parsedStops,
         scheduledTime: row.scheduled_time,
-        createdAt: row.created_at, // Use created_at as completion time
+        createdAt: row.booking_time || row.scheduled_time || row.created_at,
+        completedAt: row.completed_at || row.created_at,
         driverArrivalTime: row.driver_arrival_time,
         rideStartTime: row.ride_start_time,
-        paymentMethod: row.payment_method,
+        paymentMethod: row.payment_method || 'CASH',
         transactionId: row.transaction_id,
         distanceKm: row.distance_km,
         durationMins: row.duration_mins,

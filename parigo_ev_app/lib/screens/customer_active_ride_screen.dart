@@ -121,12 +121,29 @@ class _CustomerActiveRideScreenState extends State<CustomerActiveRideScreen> {
   Future<void> _drawRoute() async {
     if (_driverLocation == null) return;
     
-    // Draw route once from driver to pickup
+    final status = widget.rideData['status'] ?? 'SCHEDULED';
+    PointLatLng routeDestination;
+    List<PolylineWayPoint> waypoints = [];
+    
+    if (status == 'IN_PROGRESS') {
+       routeDestination = PointLatLng(_dropoffLocation.latitude, _dropoffLocation.longitude);
+       if (widget.rideData['stops'] != null) {
+          final stops = widget.rideData['stops'] as List<dynamic>;
+          for (var stop in stops) {
+             waypoints.add(PolylineWayPoint(location: '${stop['lat']},${stop['lng']}', stopOver: true));
+          }
+       }
+    } else {
+       routeDestination = PointLatLng(_pickupLocation.latitude, _pickupLocation.longitude);
+    }
+
+    // Draw route
     PolylineResult result = await _polylinePoints.getRouteBetweenCoordinates(
       request: PolylineRequest(
           origin: PointLatLng(_driverLocation!.latitude, _driverLocation!.longitude),
-          destination: PointLatLng(_pickupLocation.latitude, _pickupLocation.longitude),
-          mode: TravelMode.driving
+          destination: routeDestination,
+          mode: TravelMode.driving,
+          wayPoints: waypoints,
       )
     );
 
@@ -154,35 +171,66 @@ class _CustomerActiveRideScreenState extends State<CustomerActiveRideScreen> {
   void _updateMap() {
     if (_driverLocation == null) return;
 
-    setState(() {
-      _markers = {
+    final status = widget.rideData['status'] ?? 'SCHEDULED';
+    Set<Marker> newMarkers = {
         Marker(
           markerId: const MarkerId('driver'),
           position: _driverLocation!,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: const InfoWindow(title: 'Driver Location'),
         ),
+    };
+    
+    if (status == 'IN_PROGRESS') {
+       newMarkers.add(
+        Marker(
+          markerId: const MarkerId('dropoff'),
+          position: _dropoffLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: const InfoWindow(title: 'Dropoff'),
+        )
+       );
+       if (widget.rideData['stops'] != null) {
+          final stops = widget.rideData['stops'] as List<dynamic>;
+          for (int i=0; i<stops.length; i++) {
+             newMarkers.add(Marker(
+               markerId: MarkerId('stop_$i'),
+               position: LatLng(stops[i]['lat'], stops[i]['lng']),
+               icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+               infoWindow: InfoWindow(title: 'Stop ${i+1}'),
+             ));
+          }
+       }
+    } else {
+       newMarkers.add(
         Marker(
           markerId: const MarkerId('pickup'),
           position: _pickupLocation,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
           infoWindow: const InfoWindow(title: 'Pickup'),
-        ),
-      };
+        )
+       );
+    }
+
+    setState(() {
+      _markers = newMarkers;
     });
   }
 
   void _focusMap() {
     if (_mapController != null && _driverLocation != null) {
+      final status = widget.rideData['status'] ?? 'SCHEDULED';
+      LatLng target = (status == 'IN_PROGRESS') ? _dropoffLocation : _pickupLocation;
+      
       _mapController?.animateCamera(CameraUpdate.newLatLngBounds(
         LatLngBounds(
           southwest: LatLng(
-            _driverLocation!.latitude < _pickupLocation.latitude ? _driverLocation!.latitude : _pickupLocation.latitude,
-            _driverLocation!.longitude < _pickupLocation.longitude ? _driverLocation!.longitude : _pickupLocation.longitude,
+            _driverLocation!.latitude < target.latitude ? _driverLocation!.latitude : target.latitude,
+            _driverLocation!.longitude < target.longitude ? _driverLocation!.longitude : target.longitude,
           ),
           northeast: LatLng(
-            _driverLocation!.latitude > _pickupLocation.latitude ? _driverLocation!.latitude : _pickupLocation.latitude,
-            _driverLocation!.longitude > _pickupLocation.longitude ? _driverLocation!.longitude : _pickupLocation.longitude,
+            _driverLocation!.latitude > target.latitude ? _driverLocation!.latitude : target.latitude,
+            _driverLocation!.longitude > target.longitude ? _driverLocation!.longitude : target.longitude,
           ),
         ),
         50,

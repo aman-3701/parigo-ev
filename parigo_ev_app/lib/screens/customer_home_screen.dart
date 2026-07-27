@@ -44,6 +44,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
   String? _customPickupAddress;
   LatLng? _customDestinationPosition;
   String? _customDestinationAddress;
+  List<Map<String, dynamic>> _stops = [];
   LatLng _cameraPosition = const LatLng(22.7196, 75.8577);
   String _name = 'Customer';
   String _phone = '';
@@ -336,8 +337,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
 
     // Use Google Maps Directions API for routing
     try {
+      String waypointsStr = '';
+      if (_stops.isNotEmpty) {
+        waypointsStr = '&waypoints=' + _stops.map((s) => '${s['lat']},${s['lng']}').join('|');
+      }
       final url =
-          'https://maps.googleapis.com/maps/api/directions/json?origin=$pLat,$pLng&destination=$dLat,$dLng&key=${ApiKeys.googleMapsKey}';
+          'https://maps.googleapis.com/maps/api/directions/json?origin=$pLat,$pLng&destination=$dLat,$dLng$waypointsStr&mode=driving&key=${ApiKeys.googleMapsKey}';
       final response = await ApiClient.get(Uri.parse(url));
 
       List<LatLng> routePoints = [];
@@ -373,9 +378,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
           points: routePoints,
         );
 
-        _markers = Set.from(_markers.where((m) => m.markerId.value != 'dest' && m.markerId.value != 'pickup'))
-          ..add(newMarker)
-          ..add(pickupMarker);
+        Set<Marker> updatedMarkers = Set.from(_markers.where((m) => m.markerId.value != 'dest' && m.markerId.value != 'pickup' && !m.markerId.value.startsWith('stop_')));
+        updatedMarkers.add(newMarker);
+        updatedMarkers.add(pickupMarker);
+        for (int i=0; i<_stops.length; i++) {
+           updatedMarkers.add(Marker(
+             markerId: MarkerId('stop_$i'),
+             position: LatLng(_stops[i]['lat'], _stops[i]['lng']),
+             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+             infoWindow: InfoWindow(title: 'Stop ${i+1}'),
+           ));
+        }
+        _markers = updatedMarkers;
         _polylines = Set.from(_polylines)..add(newPolyline);
       });
 
@@ -834,6 +848,111 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
                         ],
                       ),
                     ),
+                    
+                    if (_stops.isNotEmpty)
+                      ..._stops.asMap().entries.map((entry) {
+                        int index = entry.key;
+                        var stop = entry.value;
+                        return Column(
+                          children: [
+                            const SizedBox(height: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                  color: AppTheme.surface.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                      color: AppTheme.onSurface.withOpacity(0.1))),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 4),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppTheme.surfaceContainer),
+                                    child: const Icon(Icons.stop_circle,
+                                        color: Colors.orange, size: 16),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      stop['description'] ?? 'Stop ${index + 1}',
+                                      style: const TextStyle(fontSize: 14),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.close,
+                                        color: AppTheme.onSurfaceVariant, size: 20),
+                                    onPressed: () {
+                                      setState(() {
+                                        _stops.removeAt(index);
+                                      });
+                                      if (_customDestinationPosition != null) {
+                                        _fetchRouteAndDraw({
+                                          'lat': _customDestinationPosition!.latitude,
+                                          'lng': _customDestinationPosition!.longitude,
+                                          'description': _customDestinationAddress ?? 'Destination',
+                                        });
+                                      } else {
+                                        setState(() {
+                                           _markers.removeWhere((m) => m.markerId.value.startsWith('stop_'));
+                                           _polylines.clear();
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                      
+                    if (_stops.length < 2)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 12),
+                        child: InkWell(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => DestinationSearchScreen(
+                                        title: 'Search Stop',
+                                        hintText: 'Enter stop location',
+                                        currentLat: _currentPosition?.latitude,
+                                        currentLng: _currentPosition?.longitude,
+                                      )),
+                            );
+                            if (result != null) {
+                              setState(() {
+                                _stops.add(result);
+                              });
+                              if (_customDestinationPosition != null) {
+                                _fetchRouteAndDraw({
+                                  'lat': _customDestinationPosition!.latitude,
+                                  'lng': _customDestinationPosition!.longitude,
+                                  'description': _customDestinationAddress ?? 'Destination',
+                                });
+                              }
+                            }
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.add, color: AppTheme.primary, size: 20),
+                              SizedBox(width: 8),
+                              Text('Add Stop', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
@@ -967,7 +1086,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ScheduleRideScreen(
-                                    pickup: pickup, destination: dest),
+                                    pickup: pickup, destination: dest, stops: _stops),
                               ),
                             );
                           },

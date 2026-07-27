@@ -14,11 +14,13 @@ import 'package:parigo_ev_app/core/api_client.dart';
 class ScheduleRideScreen extends StatefulWidget {
   final Map<String, dynamic> pickup;
   final Map<String, dynamic> destination;
+  final List<Map<String, dynamic>> stops;
 
   const ScheduleRideScreen({
     super.key,
     required this.pickup,
     required this.destination,
+    this.stops = const [],
   });
 
   @override
@@ -152,6 +154,12 @@ class _ScheduleRideScreenState extends State<ScheduleRideScreen> {
                 'lat': widget.destination['lat'],
                 'lng': widget.destination['lng'],
               },
+              if (widget.stops.isNotEmpty)
+                'stops': widget.stops.map((s) => {
+                  'lat': s['lat'],
+                  'lng': s['lng'],
+                  'description': s['description']
+                }).toList(),
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -585,6 +593,12 @@ class _ScheduleRideScreenState extends State<ScheduleRideScreen> {
           'lng': widget.destination['lng'],
           'description': widget.destination['description'],
         },
+        if (widget.stops.isNotEmpty)
+          'stops': widget.stops.map((s) => {
+            'lat': s['lat'],
+            'lng': s['lng'],
+            'description': s['description']
+          }).toList(),
         'scheduledDate': _selectedDate!.toIso8601String(),
         'scheduledTime': _selectedTime,
         'exactTime': _selectedSubTime,
@@ -792,6 +806,37 @@ class _ScheduleRideScreenState extends State<ScheduleRideScreen> {
                                   child: VerticalDivider(
                                       color: AppTheme.outline))),
                         ),
+                        if (widget.stops.isNotEmpty)
+                          ...widget.stops.asMap().entries.map((entry) {
+                             int index = entry.key;
+                             var stop = entry.value;
+                             return Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 Row(
+                                    children: [
+                                      const Icon(Icons.stop_circle, color: Colors.orange, size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                          child: Text(
+                                              stop['description'] ?? 'Stop ${index + 1}',
+                                              style: const TextStyle(
+                                                  color: AppTheme.onSurfaceVariant,
+                                                  fontSize: 16))),
+                                    ],
+                                 ),
+                                 const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 10),
+                                    child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: SizedBox(
+                                            height: 20,
+                                            child: VerticalDivider(
+                                                color: AppTheme.outline))),
+                                 ),
+                               ]
+                             );
+                          }).toList(),
                         Row(
                           children: [
                             const Icon(Icons.location_on,

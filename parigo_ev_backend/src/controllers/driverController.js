@@ -316,33 +316,71 @@ const updateRideStatus = async (req, res) => {
           if (estimatedFare < 0) estimatedFare = 0.0;
 
           // Save back to Firestore
+          const completedAtDate = new Date();
+          const durationMins = Math.max(1, Math.round((completedAtDate - startTime) / 60000));
+          const bookingTimeDate = r.createdAt ? (typeof r.createdAt.toDate === 'function' ? r.createdAt.toDate() : new Date(r.createdAt)) : new Date();
+
           await admin.firestore().collection('rides').doc(rideId).update({
             finalFare: estimatedFare,
             customerWaitPenalty: customerWaitPenalty,
-            driverLatePenalty: driverLatePenalty
+            driverLatePenalty: driverLatePenalty,
+            completedAt: admin.firestore.FieldValue.serverTimestamp(),
+            durationMins: durationMins
           });
 
+          const displayIdVal = r.displayId || rideId;
+          const pickupAddrVal = r.pickup?.description || r.pickup?.address || 'Unknown Pickup';
+          const dropoffAddrVal = r.destination?.description || r.destination?.address || 'Unknown Dropoff';
+          const stopsVal = JSON.stringify(r.stops || []);
+
           await db.query(
-            `INSERT INTO rides_history (ride_id, customer_uid, driver_uid, status, fare, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_time, payment_method, driver_eta_time, driver_arrival_time, ride_start_time, customer_wait_penalty, driver_late_penalty) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-             ON CONFLICT (ride_id) DO UPDATE SET status = EXCLUDED.status, payment_method = EXCLUDED.payment_method`,
+            `INSERT INTO rides_history (
+              ride_id, display_id, customer_uid, driver_uid, status, fare, 
+              pickup_lat, pickup_lng, pickup_address, 
+              dropoff_lat, dropoff_lng, dropoff_address, 
+              stops, scheduled_time, booking_time, completed_at, duration_mins,
+              payment_method, driver_eta_time, driver_arrival_time, ride_start_time, 
+              customer_wait_penalty, driver_late_penalty, distance_km, base_fare, gst_amount, transaction_id
+             ) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+             ON CONFLICT (ride_id) DO UPDATE SET 
+               status = EXCLUDED.status, 
+               payment_method = EXCLUDED.payment_method,
+               display_id = EXCLUDED.display_id,
+               pickup_address = EXCLUDED.pickup_address,
+               dropoff_address = EXCLUDED.dropoff_address,
+               stops = EXCLUDED.stops,
+               completed_at = EXCLUDED.completed_at,
+               duration_mins = EXCLUDED.duration_mins,
+               fare = EXCLUDED.fare`,
             [
               rideId, 
+              displayIdVal,
               r.uid || 'anonymous', 
               r.assignedDriverId || 'unknown', 
               status, 
               estimatedFare, 
               r.pickup?.lat || 0.0, 
               r.pickup?.lng || 0.0, 
+              pickupAddrVal,
               r.destination?.lat || 0.0, 
               r.destination?.lng || 0.0, 
-              new Date(),
+              dropoffAddrVal,
+              stopsVal,
+              r.scheduledDate ? new Date(r.scheduledDate) : bookingTimeDate,
+              bookingTimeDate,
+              completedAtDate,
+              durationMins,
               r.paymentMethod || 'CASH',
               etaTime,
               arrivalTime,
               startTime,
               customerWaitPenalty,
-              driverLatePenalty
+              driverLatePenalty,
+              r.estimatedDistance || 0.0,
+              r.baseFare || 0.0,
+              r.gstAmount || 0.0,
+              r.transactionId || null
             ]
           );
 
