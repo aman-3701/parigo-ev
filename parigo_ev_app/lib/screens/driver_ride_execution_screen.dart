@@ -250,7 +250,7 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
           _markers.add(Marker(
             markerId: MarkerId('stop_$i'),
             position: LatLng(stops[i]['lat'], stops[i]['lng']),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
             infoWindow: InfoWindow(title: 'Stop ${i+1}'),
           ));
           waypoints.add(PolylineWayPoint(location: '${stops[i]['lat']},${stops[i]['lng']}', stopOver: true));

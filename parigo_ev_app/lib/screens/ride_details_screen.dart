@@ -104,7 +104,7 @@ class _RideDetailsScreenState extends State<RideDetailsScreen> {
           _markers.add(Marker(
             markerId: MarkerId('stop_$stopIdx'),
             position: sLatLng,
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
             infoWindow: InfoWindow(title: 'Stop $stopIdx', snippet: stop['description'] ?? stop['address']),
           ));
           stopIdx++;
@@ -279,7 +279,7 @@ class _RideDetailsScreenState extends State<RideDetailsScreen> {
                               ),
                               Row(
                                 children: [
-                                  const Icon(Icons.location_on, color: Colors.orange, size: 20),
+                                  const Icon(Icons.location_on, color: Colors.amber, size: 20),
                                   const SizedBox(width: 12),
                                   Expanded(child: Text('Stop ${i + 1}: ${stopsList[i]['description'] ?? stopsList[i]['address'] ?? 'Intermediate Stop'}', style: const TextStyle(color: AppTheme.onSurface))),
                                 ],

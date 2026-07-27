@@ -385,7 +385,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
            updatedMarkers.add(Marker(
              markerId: MarkerId('stop_$i'),
              position: LatLng(_stops[i]['lat'], _stops[i]['lng']),
-             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
              infoWindow: InfoWindow(title: 'Stop ${i+1}'),
            ));
         }

@@ -233,61 +233,59 @@ const estimateFare = async (req, res) => {
       return res.status(400).json({ error: 'Pickup and destination are required' });
     }
 
+    // Build ordered list of trip points: Pickup -> Stop 1 -> ... -> Stop N -> Destination
+    const waypoints = [
+      { lat: Number(pickup.lat), lng: Number(pickup.lng) },
+      ...(Array.isArray(stops) ? stops.map(s => ({ lat: Number(s.lat), lng: Number(s.lng) })) : []),
+      { lat: Number(destination.lat), lng: Number(destination.lng) }
+    ];
+
     let distanceKm = 0;
 
-    // 1. Attempt to get road distance from Ola Maps Routing API
-    try {
+    // Compute segment by segment distance
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const p1 = waypoints[i];
+      const p2 = waypoints[i + 1];
+      let legKm = 0;
+
       if (process.env.OLA_MAPS_API_KEY) {
-        const params = {
-          origin: `${pickup.lat},${pickup.lng}`,
-          destination: `${destination.lat},${destination.lng}`,
-          api_key: process.env.OLA_MAPS_API_KEY
-        };
-        
-        if (stops && Array.isArray(stops) && stops.length > 0) {
-           params.waypoints = stops.map(s => `${s.lat},${s.lng}`).join('|');
-        }
+        try {
+          const olaResponse = await axios.post(`https://api.olamaps.io/routing/v1/directions`, null, {
+            params: {
+              origin: `${p1.lat},${p1.lng}`,
+              destination: `${p2.lat},${p2.lng}`,
+              api_key: process.env.OLA_MAPS_API_KEY
+            },
+            headers: {
+              'X-Request-Id': Date.now().toString()
+            }
+          });
 
-        const olaResponse = await axios.post(`https://api.olamaps.io/routing/v1/directions`, null, {
-          params: params,
-          headers: {
-            'X-Request-Id': Date.now().toString()
-          }
-        });
-        
-        if (olaResponse.data && olaResponse.data.routes && olaResponse.data.routes.length > 0) {
-          let totalMeters = 0;
-          if (olaResponse.data.routes[0].distance != null) {
-              totalMeters = olaResponse.data.routes[0].distance;
-          } else if (olaResponse.data.routes[0].legs) {
-              olaResponse.data.routes[0].legs.forEach(leg => {
-                  totalMeters += (leg.distance || 0);
+          if (olaResponse.data && olaResponse.data.routes && olaResponse.data.routes.length > 0) {
+            const route = olaResponse.data.routes[0];
+            let totalMeters = 0;
+            if (route.distance != null) {
+              totalMeters = route.distance;
+            } else if (route.legs) {
+              route.legs.forEach(leg => {
+                totalMeters += (leg.distance || 0);
               });
+            }
+            if (totalMeters > 0) {
+              legKm = totalMeters / 1000;
+            }
           }
-          if (totalMeters > 0) {
-            distanceKm = totalMeters / 1000;
-          } else {
-             console.warn('Distance field not found in Ola Maps response, falling back.');
-          }
+        } catch (olaError) {
+          console.warn(`Ola Maps leg ${i} failed, falling back to Haversine:`, olaError.message);
         }
       }
-    } catch (olaError) {
-      console.error('Ola Maps Routing API failed, falling back to Haversine:', olaError.message);
-    }
 
-    // 2. Fallback to Haversine if Ola Maps failed or returned nothing
-    if (distanceKm === 0) {
-      let currentLat = pickup.lat;
-      let currentLng = pickup.lng;
-      
-      if (stops && Array.isArray(stops)) {
-        for (let stop of stops) {
-          distanceKm += getDistanceFromLatLonInKm(currentLat, currentLng, stop.lat, stop.lng);
-          currentLat = stop.lat;
-          currentLng = stop.lng;
-        }
+      // Fallback for this leg if Ola Maps returned 0 or failed
+      if (legKm === 0) {
+        legKm = getDistanceFromLatLonInKm(p1.lat, p1.lng, p2.lat, p2.lng);
       }
-      distanceKm += getDistanceFromLatLonInKm(currentLat, currentLng, destination.lat, destination.lng);
+
+      distanceKm += legKm;
     }
     
     // Base fare: 50 for up to 2km, then 18.99/km

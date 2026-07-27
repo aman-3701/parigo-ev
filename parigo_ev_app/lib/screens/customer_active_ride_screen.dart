@@ -196,7 +196,7 @@ class _CustomerActiveRideScreenState extends State<CustomerActiveRideScreen> {
              newMarkers.add(Marker(
                markerId: MarkerId('stop_$i'),
                position: LatLng(stops[i]['lat'], stops[i]['lng']),
-               icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+               icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
                infoWindow: InfoWindow(title: 'Stop ${i+1}'),
              ));
           }
@@ -252,7 +252,7 @@ class _CustomerActiveRideScreenState extends State<CustomerActiveRideScreen> {
                   Marker(
                     markerId: const MarkerId('pickup'),
                     position: _pickupLocation,
-                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
                     infoWindow: const InfoWindow(title: 'Pickup'),
                   )
                 }
