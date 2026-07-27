@@ -226,6 +226,14 @@ function deg2rad(deg) {
   return deg * (Math.PI/180);
 }
 
+function extractLatLng(obj) {
+  if (!obj) return null;
+  const lat = Number(obj.lat ?? obj.latitude ?? (obj.location && obj.location.lat));
+  const lng = Number(obj.lng ?? obj.longitude ?? (obj.location && obj.location.lng));
+  if (isNaN(lat) || isNaN(lng)) return null;
+  return { lat, lng };
+}
+
 const estimateFare = async (req, res) => {
   try {
     const { pickup, destination, stops } = req.body;
@@ -233,12 +241,22 @@ const estimateFare = async (req, res) => {
       return res.status(400).json({ error: 'Pickup and destination are required' });
     }
 
+    const pPoint = extractLatLng(pickup);
+    const dPoint = extractLatLng(destination);
+    if (!pPoint || !dPoint) {
+      return res.status(400).json({ error: 'Invalid pickup or destination coordinates' });
+    }
+
+    let parsedStops = [];
+    if (typeof stops === 'string') {
+      try { parsedStops = JSON.parse(stops); } catch (e) { parsedStops = []; }
+    } else if (Array.isArray(stops)) {
+      parsedStops = stops;
+    }
+    const sPoints = parsedStops.map(extractLatLng).filter(Boolean);
+
     // Build ordered list of trip points: Pickup -> Stop 1 -> ... -> Stop N -> Destination
-    const waypoints = [
-      { lat: Number(pickup.lat), lng: Number(pickup.lng) },
-      ...(Array.isArray(stops) ? stops.map(s => ({ lat: Number(s.lat), lng: Number(s.lng) })) : []),
-      { lat: Number(destination.lat), lng: Number(destination.lng) }
-    ];
+    const waypoints = [pPoint, ...sPoints, dPoint];
 
     let distanceKm = 0;
 
@@ -248,41 +266,59 @@ const estimateFare = async (req, res) => {
       const p2 = waypoints[i + 1];
       let legKm = 0;
 
-      if (process.env.OLA_MAPS_API_KEY) {
+      // 1. Try Ola Maps Routing API
+      const olaKey = process.env.OLA_MAPS_API_KEY || 'M482Zasu80VSnCrh4GCgynJlvC4bS7jaRIJbx2YH';
+      if (olaKey) {
         try {
-          const olaResponse = await axios.post(`https://api.olamaps.io/routing/v1/directions`, null, {
-            params: {
-              origin: `${p1.lat},${p1.lng}`,
-              destination: `${p2.lat},${p2.lng}`,
-              api_key: process.env.OLA_MAPS_API_KEY
-            },
-            headers: {
-              'X-Request-Id': Date.now().toString()
-            }
+          const url = `https://api.olamaps.io/routing/v1/directions?origin=${p1.lat},${p1.lng}&destination=${p2.lat},${p2.lng}&api_key=${olaKey}`;
+          const olaResponse = await axios.post(url, null, {
+            headers: { 'X-Request-Id': Date.now().toString() },
+            timeout: 5000
           });
 
           if (olaResponse.data && olaResponse.data.routes && olaResponse.data.routes.length > 0) {
             const route = olaResponse.data.routes[0];
             let totalMeters = 0;
-            if (route.distance != null) {
-              totalMeters = route.distance;
-            } else if (route.legs) {
+            if (route.legs) {
               route.legs.forEach(leg => {
                 totalMeters += (leg.distance || 0);
               });
+            } else if (route.distance != null) {
+              totalMeters = route.distance;
             }
             if (totalMeters > 0) {
               legKm = totalMeters / 1000;
             }
           }
         } catch (olaError) {
-          console.warn(`Ola Maps leg ${i} failed, falling back to Haversine:`, olaError.message);
+          console.warn(`Ola Maps leg ${i} failed:`, olaError.message);
         }
       }
 
-      // Fallback for this leg if Ola Maps returned 0 or failed
+      // 2. Try Google Maps Directions API fallback
       if (legKm === 0) {
-        legKm = getDistanceFromLatLonInKm(p1.lat, p1.lng, p2.lat, p2.lng);
+        try {
+          const googleKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyCv8bQM8rf1Yam10C3ULj_ellJsa3Q4LDw';
+          const gUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${p1.lat},${p1.lng}&destination=${p2.lat},${p2.lng}&key=${googleKey}`;
+          const gRes = await axios.get(gUrl, { timeout: 5000 });
+          if (gRes.data && gRes.data.status === 'OK' && gRes.data.routes && gRes.data.routes.length > 0) {
+            let meters = 0;
+            gRes.data.routes[0].legs.forEach(leg => {
+              meters += (leg.distance ? leg.distance.value : 0);
+            });
+            if (meters > 0) {
+              legKm = meters / 1000;
+            }
+          }
+        } catch (gError) {
+          console.warn(`Google Maps leg ${i} failed:`, gError.message);
+        }
+      }
+
+      // 3. Fallback to Haversine with 1.35x city road network detour factor
+      if (legKm === 0) {
+        const straightKm = getDistanceFromLatLonInKm(p1.lat, p1.lng, p2.lat, p2.lng);
+        legKm = straightKm * 1.35;
       }
 
       distanceKm += legKm;
