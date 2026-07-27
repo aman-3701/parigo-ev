@@ -158,20 +158,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
         final List<dynamic> drivers = data['drivers'] ?? [];
 
         Set<Marker> newMarkers = Set.from(_markers.where((m) =>
-            m.markerId.value == 'dest' || m.markerId.value == 'pickup')); // Keep destination and pickup markers if they exist
+            m.markerId.value == 'dest' ||
+            m.markerId.value == 'pickup' ||
+            m.markerId.value.startsWith('stop_'))); // Keep destination, pickup, and intermediate stop markers
 
-        for (var d in drivers) {
-          if (d['lat'] == null || d['lng'] == null) continue;
+        // Only show nearby drivers if the user is NOT currently booking a ride
+        if (_customDestinationPosition == null && _stops.isEmpty && _polylines.isEmpty) {
+          for (var d in drivers) {
+            if (d['lat'] == null || d['lng'] == null) continue;
 
-          newMarkers.add(Marker(
-            markerId: MarkerId('driver_${d['id']}'),
-            position: LatLng(double.parse(d['lat'].toString()),
-                double.parse(d['lng'].toString())),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueYellow),
-            infoWindow:
-                InfoWindow(title: 'Parigo EV', snippet: 'Available nearby'),
-          ));
+            newMarkers.add(Marker(
+              markerId: MarkerId('driver_${d['id']}'),
+              position: LatLng(double.parse(d['lat'].toString()),
+                  double.parse(d['lng'].toString())),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueYellow),
+              infoWindow:
+                  const InfoWindow(title: 'Parigo EV', snippet: 'Available nearby'),
+            ));
+          }
         }
 
         if (mounted) {
@@ -378,7 +383,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
           points: routePoints,
         );
 
-        Set<Marker> updatedMarkers = Set.from(_markers.where((m) => m.markerId.value != 'dest' && m.markerId.value != 'pickup' && !m.markerId.value.startsWith('stop_')));
+        Set<Marker> updatedMarkers = Set.from(_markers.where((m) => m.markerId.value != 'dest' && m.markerId.value != 'pickup' && !m.markerId.value.startsWith('stop_') && !m.markerId.value.startsWith('driver_')));
         updatedMarkers.add(newMarker);
         updatedMarkers.add(pickupMarker);
         for (int i=0; i<_stops.length; i++) {
