@@ -161,18 +161,27 @@ const getCompletedRides = async (req, res) => {
         }
       }
 
+      const formatLoc = (lat, lng, addr) => {
+        if (addr && addr.trim() !== '') return addr;
+        if (lat != null && lng != null) return `Lat: ${parseFloat(lat).toFixed(4)}, Lng: ${parseFloat(lng).toFixed(4)}`;
+        return 'Unknown Location';
+      };
+
+      const pickupDesc = formatLoc(row.pickup_lat, row.pickup_lng, row.pickup_address);
+      const dropoffDesc = formatLoc(row.dropoff_lat, row.dropoff_lng, row.dropoff_address);
+
       const pickupObj = {
         lat: row.pickup_lat,
         lng: row.pickup_lng,
-        address: row.pickup_address || 'Unknown Pickup',
-        description: row.pickup_address || 'Unknown Pickup'
+        address: pickupDesc,
+        description: pickupDesc
       };
 
       const dropoffObj = {
         lat: row.dropoff_lat,
         lng: row.dropoff_lng,
-        address: row.dropoff_address || 'Unknown Dropoff',
-        description: row.dropoff_address || 'Unknown Dropoff'
+        address: dropoffDesc,
+        description: dropoffDesc
       };
 
       return {
@@ -181,9 +190,9 @@ const getCompletedRides = async (req, res) => {
         uid: row.customer_uid,
         assignedDriverId: row.driver_uid,
         status: row.status,
-        fare: row.fare,
-        finalFare: row.fare,
-        estimatedFare: row.fare,
+        fare: row.fare || 0,
+        finalFare: row.fare || 0,
+        estimatedFare: row.fare || 0,
         pickup: pickupObj,
         destination: dropoffObj,
         pickupLocation: pickupObj,
@@ -203,14 +212,14 @@ const getCompletedRides = async (req, res) => {
         customerRating: row.customer_rating,
         customerFeedback: row.customer_feedback,
         driverDetails: {
-          name: row.driver_name,
-          phone: row.driver_phone,
+          name: row.driver_name || 'Unknown Driver',
+          phone: row.driver_phone || 'N/A',
           vehicle_type: row.vehicle_type,
           profile_picture_url: row.profile_picture_url
         },
         customerDetails: {
-          name: row.customer_name,
-          phone: row.customer_phone
+          name: row.customer_name || 'Unknown Customer',
+          phone: row.customer_phone || 'N/A'
         }
       };
     });

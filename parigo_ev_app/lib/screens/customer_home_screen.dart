@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'dart:ui';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -146,6 +147,109 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
     });
   }
 
+  Color _darken(Color color, [double amount = .2]) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
+  }
+
+  Color _lighten(Color color, [double amount = .2]) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0)).toColor();
+  }
+
+  Future<BitmapDescriptor> _getRealisticCarMarker(Color color) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final double width = 56.0;
+    final double height = 110.0;
+
+    // Deep Drop Shadow
+    final Paint shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(6, 8, width, height), const Radius.circular(20)), shadowPaint);
+
+    // Base Body
+    final Path bodyPath = Path()
+      ..moveTo(12, 0)
+      ..quadraticBezierTo(width / 2, -6, width - 12, 0)
+      ..lineTo(width - 4, 30)
+      ..lineTo(width, height - 12)
+      ..quadraticBezierTo(width / 2, height + 6, 0, height - 12)
+      ..lineTo(4, 30)
+      ..close();
+    canvas.drawPath(bodyPath, Paint()..color = _darken(color, 0.3));
+
+    // Main Body
+    final Path mainBodyPath = Path()
+      ..moveTo(14, 2)
+      ..quadraticBezierTo(width / 2, -2, width - 14, 2)
+      ..lineTo(width - 6, 30)
+      ..lineTo(width - 2, height - 14)
+      ..quadraticBezierTo(width / 2, height + 2, 2, height - 14)
+      ..lineTo(6, 30)
+      ..close();
+    final Paint bodyPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(width / 2, height / 2),
+        height / 1.2,
+        [_lighten(color, 0.2), color, _darken(color, 0.2)],
+        [0.0, 0.5, 1.0],
+      );
+    canvas.drawPath(mainBodyPath, bodyPaint);
+
+    // Side Mirrors
+    final Paint mirrorPaint = Paint()..color = _darken(color, 0.1);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 36, 8, 12), const Radius.circular(4)), mirrorPaint);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(width - 8, 36, 8, 12), const Radius.circular(4)), mirrorPaint);
+
+    // Windshield
+    final Paint windowPaint = Paint()..shader = ui.Gradient.linear(const Offset(0, 30), const Offset(0, 60), [const Color(0xFF1E272E), const Color(0xFF0D1115)]);
+    final Path windshield = Path()
+      ..moveTo(12, 38)
+      ..quadraticBezierTo(width / 2, 32, width - 12, 38)
+      ..lineTo(width - 8, 54)
+      ..quadraticBezierTo(width / 2, 58, 8, 54)
+      ..close();
+    canvas.drawPath(windshield, windowPaint);
+
+    // Windshield Reflection
+    final Path reflection = Path()..moveTo(16, 42)..lineTo(28, 42)..lineTo(20, 52)..lineTo(10, 52)..close();
+    canvas.drawPath(reflection, Paint()..color = Colors.white.withOpacity(0.3));
+
+    // Roof
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(14, 60, width - 28, 30), const Radius.circular(6)), Paint()..color = const Color(0xFF050505));
+
+    // Rear Window
+    final Path rearWindow = Path()
+      ..moveTo(14, 92)
+      ..quadraticBezierTo(width / 2, 90, width - 14, 92)
+      ..lineTo(width - 10, 100)
+      ..quadraticBezierTo(width / 2, 104, 10, 100)
+      ..close();
+    canvas.drawPath(rearWindow, windowPaint);
+
+    // Headlights
+    final Paint headlightGlow = Paint()..color = Colors.cyanAccent.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawCircle(const Offset(12, 4), 6, headlightGlow);
+    canvas.drawCircle(Offset(width - 12, 4), 6, headlightGlow);
+    final Paint headlightPaint = Paint()..color = Colors.white..strokeWidth = 2..style = PaintingStyle.stroke;
+    canvas.drawPath(Path()..moveTo(10, 4)..lineTo(16, 2), headlightPaint);
+    canvas.drawPath(Path()..moveTo(width - 10, 4)..lineTo(width - 16, 2), headlightPaint);
+
+    // Taillights
+    final Paint taillightGlow = Paint()..color = Colors.redAccent.withOpacity(0.8)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawPath(Path()..moveTo(8, height - 6)..lineTo(20, height - 3), taillightGlow..strokeWidth = 4..style = PaintingStyle.stroke);
+    canvas.drawPath(Path()..moveTo(width - 8, height - 6)..lineTo(width - 20, height - 3), taillightGlow);
+    final Paint taillightPaint = Paint()..color = Colors.redAccent..strokeWidth = 2..style = PaintingStyle.stroke;
+    canvas.drawPath(Path()..moveTo(8, height - 6)..lineTo(20, height - 3), taillightPaint);
+    canvas.drawPath(Path()..moveTo(width - 8, height - 6)..lineTo(width - 20, height - 3), taillightPaint);
+
+    final ui.Image image = await pictureRecorder.endRecording().toImage(width.toInt() + 10, height.toInt() + 10);
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+  }
+
   Future<void> _loadLiveDrivers() async {
     try {
       final response = await ApiClient.get(
@@ -164,6 +268,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
 
         // Only show nearby drivers if the user is NOT currently booking a ride
         if (_customDestinationPosition == null && _stops.isEmpty && _polylines.isEmpty) {
+          final BitmapDescriptor carIcon = await _getRealisticCarMarker(Colors.greenAccent.shade700);
           for (var d in drivers) {
             if (d['lat'] == null || d['lng'] == null) continue;
 
@@ -171,8 +276,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
               markerId: MarkerId('driver_${d['id']}'),
               position: LatLng(double.parse(d['lat'].toString()),
                   double.parse(d['lng'].toString())),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueYellow),
+              icon: carIcon,
               infoWindow:
                   const InfoWindow(title: 'Parigo EV', snippet: 'Available nearby'),
             ));
@@ -427,7 +531,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
         child: ClipRRect(
           borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
             child: Container(
               color: AppTheme.surfaceContainer.withOpacity(0.4),
               child: ListView(
@@ -671,7 +775,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                    filter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       decoration: BoxDecoration(
@@ -1130,7 +1234,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
       child: ClipRRect(
         borderRadius: BorderRadius.circular(999),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+          filter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Container(
             width: 56,
             height: 56,
