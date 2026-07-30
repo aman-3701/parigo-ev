@@ -373,7 +373,7 @@ class LandingPageScreen extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: Image.asset(
-          'assets/images/driver_image.png',
+          'assets/images/parigo_car_banner.jpg',
           fit: BoxFit.cover,
         ),
       ),
