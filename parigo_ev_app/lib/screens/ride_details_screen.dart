@@ -156,7 +156,7 @@ class _RideDetailsScreenState extends State<RideDetailsScreen> {
         final dt = DateTime.fromMillisecondsSinceEpoch(dateData);
         return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
       }
-      final dt = DateTime.parse(dateData.toString());
+      final dt = DateTime.parse(dateData.toString()).toLocal();
       return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
     } catch (e) {
       return dateData.toString();
@@ -323,11 +323,11 @@ class _RideDetailsScreenState extends State<RideDetailsScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            _buildTimelineRow('Booked At', _formatDate(widget.ride['createdAt'] ?? widget.ride['bookingTime'] ?? widget.ride['scheduledTime'])),
+                            _buildTimelineRow('Booked At', _formatDate(widget.ride['createdAt'] ?? widget.ride['created_at'] ?? widget.ride['bookingTime'] ?? widget.ride['scheduledTime'])),
                             const Divider(color: AppTheme.surfaceContainerHighest),
-                            _buildTimelineRow('Picked Up', _formatDate(widget.ride['rideStartTime'] ?? widget.ride['pickupTime'] ?? widget.ride['createdAt'])),
+                            _buildTimelineRow('Picked Up', _formatDate(widget.ride['rideStartTime'] ?? widget.ride['ride_start_time'] ?? widget.ride['pickupTime'] ?? widget.ride['createdAt'] ?? widget.ride['created_at'])),
                             const Divider(color: AppTheme.surfaceContainerHighest),
-                            _buildTimelineRow('Dropped Off', _formatDate(widget.ride['completedAt'] ?? widget.ride['dropoffTime'] ?? widget.ride['updatedAt'] ?? widget.ride['createdAt'])),
+                            _buildTimelineRow('Dropped Off', _formatDate(widget.ride['completedAt'] ?? widget.ride['completed_at'] ?? widget.ride['dropoffTime'] ?? widget.ride['updatedAt'] ?? widget.ride['createdAt'] ?? widget.ride['created_at'])),
                             if (durationText.isNotEmpty) ...[
                               const Divider(color: AppTheme.surfaceContainerHighest),
                               _buildTimelineRow('Trip Duration', durationText),
