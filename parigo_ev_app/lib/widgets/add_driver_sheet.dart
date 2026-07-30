@@ -34,6 +34,7 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
   String? _aadharPhotoBase64;
   String? _licensePhotoBase64;
   String? _panCardPhotoBase64;
+  String? _profilePictureBase64;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage(String type) async {
@@ -66,6 +67,8 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
           _licensePhotoBase64 = base64Image;
         } else if (type == 'pan') {
           _panCardPhotoBase64 = base64Image;
+        } else if (type == 'profile') {
+          _profilePictureBase64 = base64Image;
         }
       });
     } catch (e) {
@@ -108,6 +111,7 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
           'aadharPhotoBase64': _aadharPhotoBase64,
           'licensePhotoBase64': _licensePhotoBase64,
           'panCardPhotoBase64': _panCardPhotoBase64,
+          'profilePictureBase64': _profilePictureBase64,
         }),
       );
 
@@ -229,6 +233,9 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
                       ),
                       
                       _buildTextField('Vehicle RC Number', _rcNumberController),
+                      
+                      _buildImagePickerRow('Profile Photo', _profilePictureBase64, () => _pickImage('profile')),
+                      const SizedBox(height: 16),
                       
                       _buildImagePickerRow('Aadhar Photo', _aadharPhotoBase64, () => _pickImage('aadhar')),
                       const SizedBox(height: 16),

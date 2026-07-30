@@ -34,6 +34,7 @@ class _AdminEditDriverScreenState extends State<AdminEditDriverScreen> {
   String? _aadharPhotoBase64;
   String? _licensePhotoBase64;
   String? _panCardPhotoBase64;
+  String? _profilePictureBase64;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -60,6 +61,7 @@ class _AdminEditDriverScreenState extends State<AdminEditDriverScreen> {
           _aadharPhotoBase64 = driver['aadhar_photo_url'];
           _licensePhotoBase64 = driver['license_photo_url'];
           _panCardPhotoBase64 = driver['pan_card_photo_url'];
+          _profilePictureBase64 = driver['profile_picture_url'];
           
           _isLoading = false;
         });
@@ -106,6 +108,8 @@ class _AdminEditDriverScreenState extends State<AdminEditDriverScreen> {
           _licensePhotoBase64 = base64Image;
         } else if (type == 'pan') {
           _panCardPhotoBase64 = base64Image;
+        } else if (type == 'profile') {
+          _profilePictureBase64 = base64Image;
         }
       });
     } catch (e) {
@@ -137,6 +141,7 @@ class _AdminEditDriverScreenState extends State<AdminEditDriverScreen> {
           'aadharPhotoBase64': _aadharPhotoBase64?.startsWith('data:image') == true ? _aadharPhotoBase64 : null,
           'licensePhotoBase64': _licensePhotoBase64?.startsWith('data:image') == true ? _licensePhotoBase64 : null,
           'panCardPhotoBase64': _panCardPhotoBase64?.startsWith('data:image') == true ? _panCardPhotoBase64 : null,
+          'profilePictureBase64': _profilePictureBase64?.startsWith('data:image') == true ? _profilePictureBase64 : null,
         }),
       );
 
@@ -254,6 +259,9 @@ class _AdminEditDriverScreenState extends State<AdminEditDriverScreen> {
                     ),
                     
                     _buildTextField('Vehicle RC Number', _rcNumberController),
+                    
+                    _buildImagePickerRow('Profile Photo', _profilePictureBase64, () => _pickImage('profile')),
+                    const SizedBox(height: 16),
                     
                     _buildImagePickerRow('Aadhar Photo', _aadharPhotoBase64, () => _pickImage('aadhar')),
                     const SizedBox(height: 16),

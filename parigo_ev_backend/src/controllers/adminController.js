@@ -301,7 +301,7 @@ const getDriversForSlot = async (req, res) => {
 
 const addDriver = async (req, res) => {
   try {
-    const { name, phone, email, pin, address, aadharPhotoBase64, licensePhotoBase64, panCardPhotoBase64, vehicleRcNumber } = req.body;
+    const { name, phone, email, pin, address, aadharPhotoBase64, licensePhotoBase64, panCardPhotoBase64, vehicleRcNumber, profilePictureBase64 } = req.body;
     const vehicleType = "Tata Xpres-t EV";
     
     if (!phone || !name || !pin || !vehicleType) {
@@ -328,9 +328,9 @@ const addDriver = async (req, res) => {
 
     // Insert into drivers
     await db.query(`
-      INSERT INTO drivers (user_id, driver_uid, name, vehicle_type, address, phone, aadhar_photo_url, license_photo_url, pan_card_photo_url, vehicle_rc_number)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    `, [dId, dUid, name, vehicleType, address, phone, aadharPhotoBase64 || null, licensePhotoBase64 || null, panCardPhotoBase64 || null, vehicleRcNumber || null]);
+      INSERT INTO drivers (user_id, driver_uid, name, vehicle_type, address, phone, aadhar_photo_url, license_photo_url, pan_card_photo_url, vehicle_rc_number, profile_picture_url)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `, [dId, dUid, name, vehicleType, address, phone, aadharPhotoBase64 || null, licensePhotoBase64 || null, panCardPhotoBase64 || null, vehicleRcNumber || null, profilePictureBase64 || null]);
 
     res.status(200).json({ success: true, message: 'Driver added successfully' });
   } catch (error) {
@@ -343,7 +343,7 @@ const getDriverDetails = async (req, res) => {
   try {
     const { id } = req.params;
     const query = `
-      SELECT d.driver_uid as id, d.name, d.phone, d.vehicle_type, d.address, d.aadhar_photo_url, d.license_photo_url, d.pan_card_photo_url, d.vehicle_rc_number, u.email
+      SELECT d.driver_uid as id, d.name, d.phone, d.vehicle_type, d.address, d.aadhar_photo_url, d.license_photo_url, d.pan_card_photo_url, d.vehicle_rc_number, d.profile_picture_url, u.email
       FROM drivers d
       JOIN users u ON d.driver_uid = u.uid
       WHERE d.driver_uid = $1
@@ -361,7 +361,7 @@ const getDriverDetails = async (req, res) => {
 
 const updateDriver = async (req, res) => {
   try {
-    const { id, name, phone, email, address, aadharPhotoBase64, licensePhotoBase64, panCardPhotoBase64, vehicleRcNumber } = req.body;
+    const { id, name, phone, email, address, aadharPhotoBase64, licensePhotoBase64, panCardPhotoBase64, vehicleRcNumber, profilePictureBase64 } = req.body;
     
     if (!id) {
       return res.status(400).json({ error: 'Driver ID is required' });
@@ -372,9 +372,10 @@ const updateDriver = async (req, res) => {
       SET name = $1, phone = $2, address = $3, vehicle_rc_number = $4,
           aadhar_photo_url = COALESCE($5, aadhar_photo_url), 
           license_photo_url = COALESCE($6, license_photo_url),
-          pan_card_photo_url = COALESCE($7, pan_card_photo_url)
-      WHERE driver_uid = $8
-    `, [name, phone, address, vehicleRcNumber || null, aadharPhotoBase64 || null, licensePhotoBase64 || null, panCardPhotoBase64 || null, id]);
+          pan_card_photo_url = COALESCE($7, pan_card_photo_url),
+          profile_picture_url = COALESCE($8, profile_picture_url)
+      WHERE driver_uid = $9
+    `, [name, phone, address, vehicleRcNumber || null, aadharPhotoBase64 || null, licensePhotoBase64 || null, panCardPhotoBase64 || null, profilePictureBase64 || null, id]);
 
     await db.query(`
       UPDATE users 

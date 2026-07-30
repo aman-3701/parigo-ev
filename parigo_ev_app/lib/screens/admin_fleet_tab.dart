@@ -9,6 +9,7 @@ import '../widgets/add_driver_sheet.dart';
 import 'admin_dashboard_screen.dart';
 import 'package:parigo_ev_app/core/api_client.dart';
 import 'admin_edit_driver_screen.dart';
+import 'admin_driver_details_screen.dart';
 
 
 class AdminFleetTab extends StatefulWidget {
@@ -125,7 +126,7 @@ class _AdminFleetTabState extends State<AdminFleetTab> {
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => AdminEditDriverScreen(driverId: driver['id']),
+                                  builder: (context) => AdminDriverDetailsScreen(driverId: driver['id']),
                                 ),
                               );
                               if (result == true) {
