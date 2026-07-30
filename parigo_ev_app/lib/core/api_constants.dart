@@ -1,7 +1,7 @@
 class ApiConstants {
   // Production URL — Railway (always available, never changes)
   static String get baseUrl {
-    return 'https://parigo-ev-backend-production.up.railway.app/api';
+    return 'https://api.parigoev.in/api';
   }
 
   // Uncomment below and comment above for local development only:
