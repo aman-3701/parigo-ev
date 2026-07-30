@@ -11,6 +11,8 @@ router.get('/drivers/available', adminController.getAvailableDrivers);
 router.get('/drivers/for-slot', adminController.getDriversForSlot);
 router.post('/drivers/add', adminController.addDriver);
 router.post('/admins/add', adminController.addAdmin);
+router.get('/drivers/:id', adminController.getDriverDetails);
+router.post('/drivers/update', adminController.updateDriver);
 router.get('/fleet', adminController.getFleet);
 router.get('/customers', adminController.getCustomers);
 router.get('/analytics', adminController.getAnalytics);

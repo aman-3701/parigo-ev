@@ -139,7 +139,8 @@ const getActiveRides = async (req, res) => {
 
 const getCompletedRides = async (req, res) => {
   try {
-    const query = `
+    const { date } = req.query;
+    let query = `
       SELECT r.*, 
              d.name as driver_name, d.phone as driver_phone, d.vehicle_type, d.profile_picture_url,
              u.name as customer_name, u.phone as customer_phone
@@ -147,9 +148,16 @@ const getCompletedRides = async (req, res) => {
       LEFT JOIN drivers d ON r.driver_uid = d.driver_uid
       LEFT JOIN users u ON r.customer_uid = u.uid
       WHERE r.status = 'COMPLETED'
-      ORDER BY r.created_at DESC
     `;
-    const result = await db.query(query);
+    const params = [];
+    
+    if (date) {
+      query += ` AND DATE(r.created_at) = $1`;
+      params.push(date);
+    }
+    
+    query += ` ORDER BY r.created_at DESC`;
+    const result = await db.query(query, params);
 
     const rides = result.rows.map(row => {
       let parsedStops = [];
@@ -233,7 +241,21 @@ const getCompletedRides = async (req, res) => {
 
 const getAvailableDrivers = async (req, res) => {
   try {
-    const result = await db.query('SELECT driver_uid as id, name, lat, lng FROM drivers');
+    const query = `
+      SELECT 
+        d.driver_uid as id, 
+        d.name, 
+        d.lat, 
+        d.lng, 
+        d.is_online,
+        EXISTS(
+          SELECT 1 FROM rides_history rh 
+          WHERE rh.driver_uid = d.driver_uid 
+          AND rh.status IN ('ALLOTTED', 'ARRIVED', 'IN_PROGRESS')
+        ) as in_ride
+      FROM drivers d
+    `;
+    const result = await db.query(query);
     res.status(200).json({ success: true, drivers: result.rows });
   } catch (error) {
     console.error('Error fetching available drivers:', error);
@@ -279,7 +301,8 @@ const getDriversForSlot = async (req, res) => {
 
 const addDriver = async (req, res) => {
   try {
-    const { name, phone, email, pin, vehicleType, aadharNumber, licenseNumber, address } = req.body;
+    const { name, phone, email, pin, address, aadharPhotoBase64, licensePhotoBase64, panCardPhotoBase64, vehicleRcNumber } = req.body;
+    const vehicleType = "Tata Xpres-t EV";
     
     if (!phone || !name || !pin || !vehicleType) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -305,14 +328,64 @@ const addDriver = async (req, res) => {
 
     // Insert into drivers
     await db.query(`
-      INSERT INTO drivers (user_id, driver_uid, name, vehicle_type, aadhar_number, license_number, address, phone)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `, [dId, dUid, name, vehicleType, aadharNumber, licenseNumber, address, phone]);
+      INSERT INTO drivers (user_id, driver_uid, name, vehicle_type, address, phone, aadhar_photo_url, license_photo_url, pan_card_photo_url, vehicle_rc_number)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `, [dId, dUid, name, vehicleType, address, phone, aadharPhotoBase64 || null, licensePhotoBase64 || null, panCardPhotoBase64 || null, vehicleRcNumber || null]);
 
     res.status(200).json({ success: true, message: 'Driver added successfully' });
   } catch (error) {
     console.error('Error adding driver:', error);
     res.status(500).json({ error: 'Failed to add driver' });
+  }
+};
+
+const getDriverDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `
+      SELECT d.driver_uid as id, d.name, d.phone, d.vehicle_type, d.address, d.aadhar_photo_url, d.license_photo_url, d.pan_card_photo_url, d.vehicle_rc_number, u.email
+      FROM drivers d
+      JOIN users u ON d.driver_uid = u.uid
+      WHERE d.driver_uid = $1
+    `;
+    const result = await db.query(query, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+    res.status(200).json({ success: true, driver: result.rows[0] });
+  } catch (error) {
+    console.error('Error fetching driver details:', error);
+    res.status(500).json({ error: 'Failed to fetch driver details' });
+  }
+};
+
+const updateDriver = async (req, res) => {
+  try {
+    const { id, name, phone, email, address, aadharPhotoBase64, licensePhotoBase64, panCardPhotoBase64, vehicleRcNumber } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Driver ID is required' });
+    }
+
+    await db.query(`
+      UPDATE drivers 
+      SET name = $1, phone = $2, address = $3, vehicle_rc_number = $4,
+          aadhar_photo_url = COALESCE($5, aadhar_photo_url), 
+          license_photo_url = COALESCE($6, license_photo_url),
+          pan_card_photo_url = COALESCE($7, pan_card_photo_url)
+      WHERE driver_uid = $8
+    `, [name, phone, address, vehicleRcNumber || null, aadharPhotoBase64 || null, licensePhotoBase64 || null, panCardPhotoBase64 || null, id]);
+
+    await db.query(`
+      UPDATE users 
+      SET name = $1, phone = $2, email = $3 
+      WHERE uid = $4
+    `, [name, phone, email, id]);
+
+    res.status(200).json({ success: true, message: 'Driver updated successfully' });
+  } catch (error) {
+    console.error('Error updating driver:', error);
+    res.status(500).json({ error: 'Failed to update driver' });
   }
 };
 
@@ -652,6 +725,8 @@ module.exports = {
   getCompletedRides,
   getAvailableDrivers,
   getDriversForSlot,
+  getDriverDetails,
+  updateDriver,
   addDriver,
   addAdmin,
   getFleet,

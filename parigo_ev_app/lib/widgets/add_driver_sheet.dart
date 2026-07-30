@@ -6,8 +6,8 @@ import '../theme/app_theme.dart';
 import '../core/api_constants.dart';
 import 'primary_button.dart';
 import 'package:parigo_ev_app/core/api_client.dart';
-
-
+import 'package:image_picker/image_picker.dart';
+import 'permission_disclosure_dialog.dart';
 class AddDriverSheet extends StatefulWidget {
   final VoidCallback onDriverAdded;
 
@@ -24,14 +24,58 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _pinController = TextEditingController();
-  final _aadharController = TextEditingController();
-  final _licenseController = TextEditingController();
+  final _rcNumberController = TextEditingController();
   final _addressController = TextEditingController();
   
-  String _selectedVehicleType = 'Tata Nexon EV';
-  final List<String> _vehicleTypes = ['Tata Nexon EV', 'Tata Tigor EV', 'MG ZS EV', 'BYD e6'];
+  final String _selectedVehicleType = 'Tata Xpres-t EV';
   
   bool _isLoading = false;
+  
+  String? _aadharPhotoBase64;
+  String? _licensePhotoBase64;
+  String? _panCardPhotoBase64;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage(String type) async {
+    try {
+      final accepted = await PermissionDisclosureDialog.show(
+        context,
+        title: 'Photo Library Access',
+        message: 'Parigo EV requires access to your photo library so you can upload identification documents.',
+        icon: Icons.photo_library,
+      );
+
+      if (accepted != true) return;
+
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 60,
+      );
+
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      final base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+
+      setState(() {
+        if (type == 'aadhar') {
+          _aadharPhotoBase64 = base64Image;
+        } else if (type == 'license') {
+          _licensePhotoBase64 = base64Image;
+        } else if (type == 'pan') {
+          _panCardPhotoBase64 = base64Image;
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -39,8 +83,7 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
     _phoneController.dispose();
     _emailController.dispose();
     _pinController.dispose();
-    _aadharController.dispose();
-    _licenseController.dispose();
+    _rcNumberController.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -60,9 +103,11 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
           'email': _emailController.text.trim(),
           'pin': _pinController.text.trim(),
           'vehicleType': _selectedVehicleType,
-          'aadharNumber': _aadharController.text.trim(),
-          'licenseNumber': _licenseController.text.trim(),
+          'vehicleRcNumber': _rcNumberController.text.trim(),
           'address': _addressController.text.trim(),
+          'aadharPhotoBase64': _aadharPhotoBase64,
+          'licensePhotoBase64': _licensePhotoBase64,
+          'panCardPhotoBase64': _panCardPhotoBase64,
         }),
       );
 
@@ -166,8 +211,10 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
                       
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
-                        child: DropdownButtonFormField<String>(
-                          value: _selectedVehicleType,
+                        child: TextFormField(
+                          initialValue: _selectedVehicleType,
+                          readOnly: true,
+                          style: const TextStyle(color: AppTheme.onSurface),
                           decoration: InputDecoration(
                             labelText: 'Vehicle Type',
                             labelStyle: const TextStyle(color: AppTheme.onSurfaceVariant),
@@ -178,19 +225,20 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
                               borderSide: BorderSide.none,
                             ),
                           ),
-                          dropdownColor: AppTheme.surfaceContainer,
-                          style: const TextStyle(color: AppTheme.onSurface),
-                          items: _vehicleTypes.map((type) {
-                            return DropdownMenuItem(value: type, child: Text(type));
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _selectedVehicleType = val);
-                          },
                         ),
                       ),
                       
-                      _buildTextField('Aadhar Number', _aadharController),
-                      _buildTextField('License Number', _licenseController),
+                      _buildTextField('Vehicle RC Number', _rcNumberController),
+                      
+                      _buildImagePickerRow('Aadhar Photo', _aadharPhotoBase64, () => _pickImage('aadhar')),
+                      const SizedBox(height: 16),
+                      
+                      _buildImagePickerRow('License Photo', _licensePhotoBase64, () => _pickImage('license')),
+                      const SizedBox(height: 16),
+
+                      _buildImagePickerRow('PAN Card Photo', _panCardPhotoBase64, () => _pickImage('pan')),
+                      const SizedBox(height: 16),
+                      
                       _buildTextField('Address', _addressController),
                       
                       const SizedBox(height: 16),
@@ -209,6 +257,25 @@ class _AddDriverSheetState extends State<AddDriverSheet> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildImagePickerRow(String label, String? base64Data, VoidCallback onTap) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: AppTheme.onSurfaceVariant)),
+        OutlinedButton.icon(
+          onPressed: onTap,
+          icon: Icon(base64Data != null ? Icons.check_circle : Icons.upload_file, 
+            color: base64Data != null ? Colors.green : AppTheme.primaryContainer),
+          label: Text(base64Data != null ? 'Uploaded' : 'Upload', 
+            style: TextStyle(color: base64Data != null ? Colors.green : AppTheme.primaryContainer)),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: base64Data != null ? Colors.green : AppTheme.primaryContainer),
+          ),
+        ),
+      ],
     );
   }
 }

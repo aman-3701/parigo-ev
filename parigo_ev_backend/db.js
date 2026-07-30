@@ -137,6 +137,10 @@ const initDb = async () => {
     await pool.query('ALTER TABLE drivers ADD COLUMN IF NOT EXISTS lat DECIMAL(10, 8);');
     await pool.query('ALTER TABLE drivers ADD COLUMN IF NOT EXISTS lng DECIMAL(11, 8);');
     await pool.query('ALTER TABLE drivers ADD COLUMN IF NOT EXISTS battery INTEGER DEFAULT 100;');
+    await pool.query('ALTER TABLE drivers ADD COLUMN IF NOT EXISTS aadhar_photo_url TEXT;');
+    await pool.query('ALTER TABLE drivers ADD COLUMN IF NOT EXISTS license_photo_url TEXT;');
+    await pool.query('ALTER TABLE drivers ADD COLUMN IF NOT EXISTS pan_card_photo_url TEXT;');
+    await pool.query('ALTER TABLE drivers ADD COLUMN IF NOT EXISTS vehicle_rc_number VARCHAR(255);');
     
     await pool.query(createRidesHistoryTable);
     

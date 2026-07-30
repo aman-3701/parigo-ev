@@ -8,6 +8,7 @@ import '../core/api_constants.dart';
 import '../widgets/add_driver_sheet.dart';
 import 'admin_dashboard_screen.dart';
 import 'package:parigo_ev_app/core/api_client.dart';
+import 'admin_edit_driver_screen.dart';
 
 
 class AdminFleetTab extends StatefulWidget {
@@ -119,10 +120,23 @@ class _AdminFleetTabState extends State<AdminFleetTab> {
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16.0),
-                          child: GlassCard(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
+                          child: InkWell(
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AdminEditDriverScreen(driverId: driver['id']),
+                                ),
+                              );
+                              if (result == true) {
+                                _fetchFleet();
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(24),
+                            child: GlassCard(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -341,7 +355,8 @@ class _AdminFleetTabState extends State<AdminFleetTab> {
                               ),
                             ),
                           ),
-                        );
+                        ),
+                      );
                       },
                     ),
                   ),

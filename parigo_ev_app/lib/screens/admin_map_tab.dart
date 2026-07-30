@@ -226,8 +226,17 @@ class _AdminMapTabState extends State<AdminMapTab> {
         for (var d in drivers) {
           if (d['lat'] == null || d['lng'] == null) continue;
 
-          // For now, if they are returned by this endpoint, they are online.
           Color color = Colors.green;
+          String statusText = 'ONLINE';
+
+          if (d['in_ride'] == true) {
+            color = Colors.orange;
+            statusText = 'IN RIDE';
+          } else if (d['is_online'] == false) {
+            color = Colors.red;
+            statusText = 'OFFLINE';
+          }
+
           final icon = await _getRealisticCarMarker(color);
 
           newMarkers.add(Marker(
@@ -236,7 +245,7 @@ class _AdminMapTabState extends State<AdminMapTab> {
                 double.parse(d['lng'].toString())),
             infoWindow: InfoWindow(
               title: d['name'],
-              snippet: 'Status: ONLINE',
+              snippet: 'Status: $statusText',
             ),
             icon: icon,
           ));

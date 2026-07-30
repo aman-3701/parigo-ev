@@ -22,11 +22,7 @@ class AdminSettingsTab extends StatefulWidget {
 }
 
 class _AdminSettingsTabState extends State<AdminSettingsTab> {
-  // Mock Settings State
-  double _baseFare = 50.0;
-  double _perKmRate = 18.0;
-  bool _surgePricing = false;
-  double _surgeMultiplier = 1.5;
+
 
   // Real backend capacity state
   double _maxBookingsPerSlot = 5.0;
@@ -264,144 +260,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                 ),
               ),
 
-              const SizedBox(height: 40),
 
-              // 3. Dynamic Pricing Controls
-              Text('Dynamic Pricing Controls',
-                  style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 16),
-              GlassCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Base Fare (₹)',
-                                    style: TextStyle(
-                                        color: AppTheme.onSurface,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
-                                Text('Starting price for all rides',
-                                    style: TextStyle(
-                                        color: AppTheme.onSurfaceVariant,
-                                        fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('₹${_baseFare.toInt()}',
-                              style: const TextStyle(
-                                  color: AppTheme.primaryContainer,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      Slider(
-                        value: _baseFare,
-                        min: 30,
-                        max: 100,
-                        divisions: 14,
-                        activeColor: AppTheme.primaryContainer,
-                        onChanged: (val) => setState(() => _baseFare = val),
-                      ),
-                      const Divider(color: AppTheme.outline, height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Per KM Rate (₹)',
-                                    style: TextStyle(
-                                        color: AppTheme.onSurface,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
-                                Text('Added cost per kilometer',
-                                    style: TextStyle(
-                                        color: AppTheme.onSurfaceVariant,
-                                        fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('₹${_perKmRate.toInt()}',
-                              style: const TextStyle(
-                                  color: AppTheme.primaryContainer,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      Slider(
-                        value: _perKmRate,
-                        min: 10,
-                        max: 30,
-                        divisions: 20,
-                        activeColor: AppTheme.primaryContainer,
-                        onChanged: (val) => setState(() => _perKmRate = val),
-                      ),
-                      const Divider(color: AppTheme.outline, height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Surge Pricing',
-                                    style: TextStyle(
-                                        color: AppTheme.onSurface,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
-                                Text('Enable during high demand',
-                                    style: TextStyle(
-                                        color: AppTheme.onSurfaceVariant,
-                                        fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: _surgePricing,
-                            activeColor: AppTheme.primaryFixed,
-                            onChanged: (val) =>
-                                setState(() => _surgePricing = val),
-                          )
-                        ],
-                      ),
-                      if (_surgePricing) ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Multiplier: ${_surgeMultiplier}x',
-                                style: const TextStyle(
-                                    color: AppTheme.primaryFixed,
-                                    fontWeight: FontWeight.bold)),
-                            Expanded(
-                              child: Slider(
-                                value: _surgeMultiplier,
-                                min: 1.1,
-                                max: 3.0,
-                                divisions: 19,
-                                activeColor: AppTheme.primaryFixed,
-                                onChanged: (val) => setState(() =>
-                                    _surgeMultiplier =
-                                        double.parse(val.toStringAsFixed(1))),
-                              ),
-                            )
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
 
               const SizedBox(height: 32),
 

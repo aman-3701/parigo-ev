@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'ride_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,6 +23,7 @@ class _AdminActiveRidesTabState extends State<AdminActiveRidesTab> {
   bool _isLoadingCompleted = true;
   List<dynamic> _activeRides = [];
   List<dynamic> _completedRides = [];
+  DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
@@ -58,8 +60,9 @@ class _AdminActiveRidesTabState extends State<AdminActiveRidesTab> {
 
   Future<void> _fetchCompletedRides() async {
     setState(() => _isLoadingCompleted = true);
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
     try {
-      final response = await ApiClient.get(Uri.parse('${ApiConstants.baseUrl}/admin/rides/completed'))
+      final response = await ApiClient.get(Uri.parse('${ApiConstants.baseUrl}/admin/rides/completed?date=$dateStr'))
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -267,23 +270,87 @@ class _AdminActiveRidesTabState extends State<AdminActiveRidesTab> {
   }
 
   Widget _buildCompletedRidesList() {
-    if (_isLoadingCompleted) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.primaryContainer));
-    }
-    if (_completedRides.isEmpty) {
-      return const Center(
-        child: Text('No completed rides yet.',
-            style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 16)),
-      );
-    }
-    return RefreshIndicator(
-      onRefresh: () async => _fetchCompletedRides(),
-      color: AppTheme.primaryContainer,
-      backgroundColor: AppTheme.surfaceContainer,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: _completedRides.length,
-        itemBuilder: (context, index) {
+    return Column(
+      children: [
+        // Date Picker Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Showing rides for:',
+                style: const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 14),
+              ),
+              InkWell(
+                onTap: () async {
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2023),
+                    lastDate: DateTime.now(),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: AppTheme.primaryContainer,
+                            onPrimary: Colors.black,
+                            surface: AppTheme.surfaceContainerHigh,
+                            onSurface: AppTheme.onSurface,
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (pickedDate != null && pickedDate != _selectedDate) {
+                    setState(() {
+                      _selectedDate = pickedDate;
+                    });
+                    _fetchCompletedRides();
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceContainerHighest.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.outline),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, color: AppTheme.primaryContainer, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('MMM dd, yyyy').format(_selectedDate),
+                        style: const TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // List of rides
+        Expanded(
+          child: _isLoadingCompleted
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryContainer))
+              : _completedRides.isEmpty
+                  ? const Center(
+                      child: Text('No completed rides on this date.',
+                          style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 16)),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async => _fetchCompletedRides(),
+                      color: AppTheme.primaryContainer,
+                      backgroundColor: AppTheme.surfaceContainer,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16.0),
+                        itemCount: _completedRides.length,
+                        itemBuilder: (context, index) {
           final ride = _completedRides[index];
           final pDesc = _getLocationDescription(ride['pickupLocation'] ?? ride['pickup']);
           final dDesc = _getLocationDescription(ride['dropoffLocation'] ?? ride['destination']);
@@ -397,7 +464,7 @@ class _AdminActiveRidesTabState extends State<AdminActiveRidesTab> {
           );
         },
       ),
-    );
+    ));
   }
 
   @override
