@@ -526,6 +526,31 @@ const getFeedback = async (req, res) => {
   }
 };
 
+const getDriverFeedback = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        r.id, 
+        r.ride_id, 
+        r.driver_rating, 
+        r.driver_feedback, 
+        r.created_at, 
+        COALESCE(u.name, u.phone, 'Unknown Customer') AS customer_name, 
+        COALESCE(d.name, d.phone, 'Unknown Driver') AS driver_name 
+      FROM rides_history r 
+      LEFT JOIN users u ON r.customer_uid = u.uid 
+      LEFT JOIN drivers d ON r.driver_uid = d.driver_uid 
+      WHERE r.driver_rating IS NOT NULL 
+      ORDER BY r.created_at DESC
+    `;
+    const result = await db.query(query);
+    res.status(200).json({ success: true, feedback: result.rows });
+  } catch (error) {
+    console.error('Error fetching admin driver feedback:', error);
+    res.status(500).json({ error: 'Failed to fetch driver feedback' });
+  }
+};
+
 const sendPromo = async (req, res) => {
   const { title, message, targetUid } = req.body; // if targetUid is null, send to all customers
   if (!title || !message) return res.status(400).json({ error: 'Title and message required' });
@@ -736,6 +761,7 @@ module.exports = {
   updateSlotCapacity,
   getSlotCapacity,
   getFeedback,
+  getDriverFeedback,
   sendPromo,
   createCoupon,
   getCoupons,

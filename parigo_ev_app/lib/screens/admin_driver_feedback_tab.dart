@@ -29,7 +29,7 @@ class _AdminDriverFeedbackTabState extends State<AdminDriverFeedbackTab> {
   Future<void> _fetchFeedback() async {
     setState(() => _isLoading = true);
     try {
-      final response = await ApiClient.get(Uri.parse('${ApiConstants.baseUrl}/admin/feedback'));
+      final response = await ApiClient.get(Uri.parse('${ApiConstants.baseUrl}/admin/driver-feedback'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {

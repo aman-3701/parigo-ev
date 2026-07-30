@@ -19,6 +19,7 @@ router.get('/analytics', adminController.getAnalytics);
 router.post('/settings/slot-capacity', adminController.updateSlotCapacity);
 router.get('/settings/slot-capacity', adminController.getSlotCapacity);
 router.get('/feedback', adminController.getFeedback);
+router.get('/driver-feedback', adminController.getDriverFeedback);
 router.post('/send-promo', adminController.sendPromo);
 router.post('/coupon/create', adminController.createCoupon);
 router.get('/coupons', adminController.getCoupons);
