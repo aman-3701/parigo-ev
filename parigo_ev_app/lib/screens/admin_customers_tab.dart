@@ -58,10 +58,14 @@ class _AdminCustomersTabState extends State<AdminCustomersTab> {
     }
   }
 
-  String _formatDate(String? isoDate) {
+  String _formatDate(dynamic isoDate) {
     if (isoDate == null) return 'Unknown Date';
     try {
-      final date = DateTime.parse(isoDate);
+      if (isoDate is Map && isoDate['_seconds'] != null) {
+        final date = DateTime.fromMillisecondsSinceEpoch(isoDate['_seconds'] * 1000);
+        return DateFormat('MMM dd, yyyy - hh:mm a').format(date);
+      }
+      final date = DateTime.parse(isoDate.toString());
       return DateFormat('MMM dd, yyyy - hh:mm a').format(date);
     } catch (e) {
       return 'Invalid Date';

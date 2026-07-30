@@ -845,8 +845,7 @@ class _DriverRideExecutionScreenState extends State<DriverRideExecutionScreen> w
                                   fontSize: 24, color: Colors.greenAccent)),
                           const SizedBox(height: 8),
 
-                          if (_updatedRideData?['driverLatePenalty'] != null && _updatedRideData!['driverLatePenalty'] > 0)
-                             Text('- ₹${_updatedRideData!['driverLatePenalty']} Late Discount (50% Company Covered)', style: const TextStyle(color: Colors.greenAccent, fontSize: 16)),
+
                           const SizedBox(height: 8),
                           Text(
                               '₹${_updatedRideData?['finalFare'] ?? widget.rideData?['estimatedFare'] ?? '450'} to be collected',

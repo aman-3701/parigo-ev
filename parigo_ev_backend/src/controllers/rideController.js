@@ -354,6 +354,16 @@ const checkSlotAvailability = async (req, res) => {
       return res.status(400).json({ error: 'Date is required' });
     }
     
+    let maxCapacity = 5;
+    try {
+      const settingsDoc = await admin.firestore().collection('settings').doc('global').get();
+      if (settingsDoc.exists && settingsDoc.data().maxBookingsPerSlot !== undefined) {
+        maxCapacity = settingsDoc.data().maxBookingsPerSlot;
+      }
+    } catch (e) {
+      console.error('Error fetching global capacity setting:', e);
+    }
+
     const snapshot = await admin.firestore().collection('rides')
       .where('isScheduled', '==', true)
       .where('scheduledDateStr', '==', date)
@@ -371,7 +381,7 @@ const checkSlotAvailability = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      maxCapacity: 5,
+      maxCapacity: maxCapacity,
       bookedSlots: bookedSlots
     });
   } catch (error) {

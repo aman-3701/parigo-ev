@@ -53,10 +53,14 @@ class _AdminCustomerDetailsScreenState extends State<AdminCustomerDetailsScreen>
     }
   }
 
-  String _formatDate(String? isoDate) {
+  String _formatDate(dynamic isoDate) {
     if (isoDate == null) return 'Unknown Date';
     try {
-      final date = DateTime.parse(isoDate);
+      if (isoDate is Map && isoDate['_seconds'] != null) {
+        final date = DateTime.fromMillisecondsSinceEpoch(isoDate['_seconds'] * 1000);
+        return DateFormat('MMM dd, yyyy - hh:mm a').format(date);
+      }
+      final date = DateTime.parse(isoDate.toString());
       return DateFormat('MMM dd, yyyy - hh:mm a').format(date);
     } catch (e) {
       return 'Invalid Date';
@@ -71,8 +75,7 @@ class _AdminCustomerDetailsScreenState extends State<AdminCustomerDetailsScreen>
     final String fare = ride['finalFare'] != null 
         ? ride['finalFare'].toString() 
         : (ride['estimatedFare']?.toString() ?? ride['fare']?.toString() ?? '0.0');
-    final waitPenalty = ride['customerWaitPenalty'];
-    final latePenalty = ride['driverLatePenalty'];
+
     
     // Handle timestamp formatting safely
     String dateStr = 'Unknown Date';
@@ -140,11 +143,7 @@ class _AdminCustomerDetailsScreenState extends State<AdminCustomerDetailsScreen>
                     Text(fare, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.onSurface)),
                   ],
                 ),
-                if (latePenalty != null && latePenalty > 0)
-                   Padding(
-                     padding: const EdgeInsets.only(top: 4.0),
-                     child: Text('- ₹$latePenalty Punctuality Guarantee', style: const TextStyle(color: Colors.greenAccent, fontSize: 14)),
-                   ),
+
                 const SizedBox(height: 16),
                 Row(
                   children: [
