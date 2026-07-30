@@ -11,7 +11,7 @@ class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
 
   final String supportPhone = '+918878587615';
-  final String supportEmail = 'abhimanyusingh16111998@gmail.com';
+  final String supportEmail = 'parigoev@gmail.com';
   final String emergencyPhone = '+918878587615'; // Using the same as SOS per user request
 
   Future<void> _launchUrl(String urlString, BuildContext context) async {
@@ -139,7 +139,7 @@ class SupportScreen extends StatelessWidget {
               const SizedBox(height: 16),
               
               // FAQS
-              if (UserSession().role == 'Driver') ...[
+              if (UserSession().role.toLowerCase() == 'driver') ...[
                 Text('Salary & Operations', style: const TextStyle(color: AppTheme.primaryContainer, fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 8),
                 GlassCard(

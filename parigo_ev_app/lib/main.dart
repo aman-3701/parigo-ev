@@ -10,6 +10,9 @@ import 'core/user_session.dart';
 import 'package:parigo_ev_app/core/api_client.dart';
 import 'package:parigo_ev_app/core/api_constants.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/landing_page_screen.dart';
+import 'screens/privacy_policy_screen.dart';
+import 'screens/terms_of_service_screen.dart';
 import 'core/deep_link_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -43,26 +46,29 @@ void _reportCrashToAdmin(dynamic error, StackTrace? stack) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
 
-  // Initialize Deep Link Handler
-  DeepLinkHandler().initAppLinks();
+    // Initialize Deep Link Handler
+    DeepLinkHandler().initAppLinks();
 
-  // Initialize Background Service
-  await initializeBackgroundService();
+    // Initialize Background Service
+    await initializeBackgroundService();
 
-  // Pass all uncaught "fatal" errors from the framework to Crashlytics and Admin
-  FlutterError.onError = (FlutterErrorDetails details) {
-    _reportCrashToAdmin(details.exception, details.stack);
-    FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-  };
+    // Pass all uncaught "fatal" errors from the framework to Crashlytics and Admin
+    FlutterError.onError = (FlutterErrorDetails details) {
+      _reportCrashToAdmin(details.exception, details.stack);
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    };
 
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework
-  PlatformDispatcher.instance.onError = (error, stack) {
-    _reportCrashToAdmin(error, stack);
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework
+    PlatformDispatcher.instance.onError = (error, stack) {
+      _reportCrashToAdmin(error, stack);
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
   runApp(
     MultiProvider(
@@ -98,9 +104,10 @@ class ParigoEVApp extends StatelessWidget {
         Locale('en'), // English
         Locale('hi'), // Hindi
       ],
-      home: const SplashScreen(),
+      home: kIsWeb ? const LandingPageScreen() : const SplashScreen(),
       routes: {
-        '/': (context) => const OnboardingScreen(),
+        '/privacy': (context) => const PrivacyPolicyScreen(),
+        '/terms': (context) => const TermsOfServiceScreen(),
       },
     );
   }

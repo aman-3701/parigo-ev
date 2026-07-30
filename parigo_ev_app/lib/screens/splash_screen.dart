@@ -8,7 +8,7 @@ import 'admin_dashboard_screen.dart';
 import '../core/user_session.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/parigo_logo.dart';
-
+import 'package:permission_handler/permission_handler.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
 
@@ -50,6 +50,9 @@ class _SplashScreenState extends State<SplashScreen>
     
     // Load local session concurrently
     await UserSession().loadSession();
+
+    // Request notification permission for Android 13+ on startup
+    await Permission.notification.request();
 
     // Wait for the minimum splash time to pass before navigating
     await minSplashDuration;

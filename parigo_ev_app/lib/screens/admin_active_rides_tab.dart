@@ -464,7 +464,10 @@ class _AdminActiveRidesTabState extends State<AdminActiveRidesTab> {
           );
         },
       ),
-    ));
+    ),
+        ),
+      ],
+    );
   }
 
   @override
