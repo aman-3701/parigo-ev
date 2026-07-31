@@ -195,27 +195,35 @@ class LandingPageScreen extends StatelessWidget {
   }
 
   Widget _buildFeaturesSection(BuildContext context, bool isDesktop) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth < 600;
+    
+    // On mobile: 24 horizontal padding on each side (48 total) + 16 spacing between 2 cards = 64
+    double cardWidth = isDesktop ? 260 : (isMobile ? (screenWidth - 64) / 2 - 1 : 220);
+    double spacing = isMobile ? 16 : 40;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 80 : 24,
-        vertical: 80,
+        vertical: isMobile ? 40 : 80,
       ),
       color: AppTheme.background,
       child: Column(
         children: [
           Text(
             'Why Choose Parigo EV?',
+            textAlign: TextAlign.center,
             style: GoogleFonts.nunito(
               fontSize: isDesktop ? 36 : 28,
               fontWeight: FontWeight.bold,
               color: AppTheme.onSurface,
             ),
           ),
-          const SizedBox(height: 60),
+          SizedBox(height: isMobile ? 32 : 60),
           Wrap(
-            spacing: 40,
-            runSpacing: 40,
+            spacing: spacing,
+            runSpacing: spacing,
             alignment: WrapAlignment.center,
             children: [
               _buildFeatureCard(
@@ -223,72 +231,96 @@ class LandingPageScreen extends StatelessWidget {
                 icon: Icons.eco,
                 title: '100% Electric',
                 description: 'Zero emissions, silent rides. Help us build a sustainable future.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.my_location,
                 title: 'Live Tracking',
                 description: 'Real-time driver location and accurate ETAs for your convenience.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.calendar_month,
                 title: 'Scheduled Rides',
                 description: 'Book your ride in advance and never worry about being late again.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.money_off,
                 title: 'No Surge Pricing',
                 description: 'Honest, transparent fares that never multiply during peak hours or rain.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.ac_unit,
                 title: 'No Extra AC Charges',
                 description: 'Enjoy a cool, comfortable ride without paying a single rupee extra.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.person_outline,
                 title: 'Professional Drivers',
                 description: 'Well-uniformed, polite, and highly trained drivers for a premium experience.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.cleaning_services,
                 title: 'Pristine Cabs',
                 description: 'Immaculately clean interiors and exteriors for every single ride.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.water_drop,
                 title: 'Free Water Bottles',
                 description: 'Stay hydrated with complimentary bottled water provided in every cab.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.sanitizer,
                 title: 'Complimentary Tissues',
                 description: 'Fresh tissue boxes available in the backseat for your convenience.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.child_care,
                 title: 'Candies for Kids',
                 description: 'A sweet treat to keep the little ones happy and smiling during the journey.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.newspaper,
                 title: 'Daily Newspapers',
                 description: 'Catch up on the latest news with fresh daily newspapers available in-cab.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
               _buildFeatureCard(
                 context,
                 icon: Icons.delete_outline,
                 title: 'In-Cab Dustbin',
                 description: 'Dedicated waste bins to help keep your environment clean and tidy.',
+                width: cardWidth,
+                isMobile: isMobile,
               ),
             ],
           )
@@ -297,30 +329,30 @@ class LandingPageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureCard(BuildContext context, {required IconData icon, required String title, required String description}) {
+  Widget _buildFeatureCard(BuildContext context, {required IconData icon, required String title, required String description, double? width, bool isMobile = false}) {
     return Container(
-      width: 260,
-      padding: const EdgeInsets.all(24),
+      width: width ?? 260,
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(isMobile ? 16 : 24),
         border: Border.all(color: AppTheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(isMobile ? 8 : 12),
             decoration: BoxDecoration(
               color: AppTheme.primaryContainer.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppTheme.primary, size: 32),
+            child: Icon(icon, color: AppTheme.primary, size: isMobile ? 24 : 32),
           ),
-          const SizedBox(height: 24),
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.onSurface)),
-          const SizedBox(height: 12),
-          Text(description, style: const TextStyle(fontSize: 14, color: AppTheme.onSurfaceVariant, height: 1.5)),
+          SizedBox(height: isMobile ? 16 : 24),
+          Text(title, style: TextStyle(fontSize: isMobile ? 16 : 20, fontWeight: FontWeight.bold, color: AppTheme.onSurface)),
+          SizedBox(height: isMobile ? 8 : 12),
+          Text(description, style: TextStyle(fontSize: isMobile ? 12 : 14, color: AppTheme.onSurfaceVariant, height: 1.5)),
         ],
       ),
     );
