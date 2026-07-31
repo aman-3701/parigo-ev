@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd parigo_ev_app && bash build.sh",
+  "outputDirectory": "parigo_ev_app/build/web",
+  "framework": null
+}
