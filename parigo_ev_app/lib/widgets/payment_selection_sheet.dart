@@ -347,28 +347,7 @@ class _PaymentSelectionBottomSheetState extends State<PaymentSelectionBottomShee
                       Text(baseFareStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
-                  if (_selectedMethod == 'UPI') ...[
-                    const SizedBox(height: 16),
-                    const Divider(color: AppTheme.outline),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Razorpay'),
-                          selected: _selectedUpiApp == 'RAZORPAY',
-                          onSelected: (val) => setState(() => _selectedUpiApp = 'RAZORPAY'),
-                          selectedColor: AppTheme.primaryContainer.withOpacity(0.2),
-                        ),
-                        ChoiceChip(
-                          label: const Text('PhonePe'),
-                          selected: _selectedUpiApp == 'PHONEPE',
-                          onSelected: (val) => setState(() => _selectedUpiApp = 'PHONEPE'),
-                          selectedColor: AppTheme.primaryContainer.withOpacity(0.2),
-                        ),
-                      ],
-                    )
-                  ]
+                  // UPI sub-options removed to exclusively use Razorpay
                 ],
               ),
             ),

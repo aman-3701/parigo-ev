@@ -356,8 +356,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
       return;
     }
 
-    // Permission granted, get current location
-    Position position = await Geolocator.getCurrentPosition();
+    // Permission granted, get current high-accuracy location
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     setState(() {
       _currentPosition = position;
       _customPickupAddress = 'Fetching address...';
@@ -920,25 +920,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> with WidgetsBin
                             icon: const Icon(Icons.my_location,
                                 color: AppTheme.primary, size: 20),
                             onPressed: () async {
-                              if (_currentPosition != null) {
-                                setState(() {
-                                  _customPickupPosition = null;
-                                  _customPickupAddress = 'Fetching address...';
-                                  _updatePickupMarker();
-                                });
+                              // Fetch fresh location to prevent stale/cached location bugs
+                              try {
+                                Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+                                if (mounted) {
+                                  setState(() {
+                                    _currentPosition = position;
+                                    _customPickupPosition = null;
+                                    _customPickupAddress = 'Fetching address...';
+                                    _updatePickupMarker();
+                                  });
+                                }
                                 _mapController?.animateCamera(
                                     CameraUpdate.newLatLngZoom(
-                                        LatLng(_currentPosition!.latitude,
-                                            _currentPosition!.longitude),
+                                        LatLng(position.latitude,
+                                            position.longitude),
                                         15));
                                 final address = await _fetchAddressFromCoordinates(
-                                    LatLng(_currentPosition!.latitude,
-                                        _currentPosition!.longitude));
+                                    LatLng(position.latitude,
+                                        position.longitude));
                                 if (mounted) {
                                   setState(() {
                                     _customPickupAddress = address;
                                   });
                                 }
+                              } catch (e) {
+                                print('Error fetching fresh location: $e');
                               }
                             },
                           ),

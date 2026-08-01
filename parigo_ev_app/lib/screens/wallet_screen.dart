@@ -158,25 +158,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Payment Method', style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 12)),
-                  ),
-                  RadioListTile<String>(
-                    title: const Text('Razorpay', style: TextStyle(color: AppTheme.onSurface)),
-                    value: 'razorpay',
-                    groupValue: _selectedGateway,
-                    activeColor: AppTheme.primaryFixed,
-                    onChanged: (val) => setStateDialog(() => _selectedGateway = val!),
-                  ),
-                  RadioListTile<String>(
-                    title: const Text('PhonePe', style: TextStyle(color: AppTheme.onSurface)),
-                    value: 'phonepe',
-                    groupValue: _selectedGateway,
-                    activeColor: AppTheme.primaryFixed,
-                    onChanged: (val) => setStateDialog(() => _selectedGateway = val!),
-                  ),
+                  // Gateway selection removed, defaulting to Razorpay
                 ],
               ),
               actions: [
@@ -201,11 +183,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     Navigator.pop(context);
                     _currentTopupAmount = amount;
                     
-                    if (_selectedGateway == 'razorpay') {
-                      _startRazorpayFlow(amount);
-                    } else {
-                      _startPhonePeFlow(amount);
-                    }
+                    _startRazorpayFlow(amount);
                   },
                   child: const Text('Proceed'),
                 ),
