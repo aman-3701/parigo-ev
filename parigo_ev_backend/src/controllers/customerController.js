@@ -64,12 +64,13 @@ const getCustomerHistoryRides = async (req, res) => {
 
           // Fetch driver details
           if (ride.assignedDriverId) {
-             const result = await db.query('SELECT name, phone, profile_picture_url, vehicle_type FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
+             const result = await db.query('SELECT name, phone, profile_picture_url, vehicle_type, rc_number FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
              if (result.rows.length > 0) {
                 ride.driverDetails = {
                   name: result.rows[0].name,
                   phone: result.rows[0].phone,
                   vehicle_type: result.rows[0].vehicle_type,
+                  rc_number: result.rows[0].rc_number,
                   profilePictureUrl: result.rows[0].profile_picture_url
                 };
              }

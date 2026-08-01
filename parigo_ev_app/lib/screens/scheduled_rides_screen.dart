@@ -124,6 +124,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
               'otp': r['otp']?.toString() ?? '---',
               'driver_name': r['driverDetails'] != null ? r['driverDetails']['name'] : (r['assignedDriverId'] != null || r['driverId'] != null ? 'Driver Assigned' : null),
               'vehicle': r['driverDetails'] != null ? r['driverDetails']['vehicle_type'] : (r['assignedDriverId'] != null || r['driverId'] != null ? 'EV' : null),
+              'rc_number': r['driverDetails'] != null ? r['driverDetails']['rc_number'] : null,
               'profile_picture_url': r['driverDetails'] != null ? r['driverDetails']['profile_picture_url'] : null,
               'driver_phone': r['driverDetails'] != null ? r['driverDetails']['phone'] : null,
               'assignedDriverId': r['assignedDriverId']?.toString() ?? r['driverId']?.toString(),
@@ -430,8 +431,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
                                                         fontSize: 16)),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                    ride['vehicle'] ??
-                                                        'Vehicle Details',
+                                                    '${ride['vehicle'] ?? 'Vehicle Details'}${ride['rc_number'] != null && ride['rc_number'].toString().isNotEmpty ? ' • ${ride['rc_number']}' : ''}',
                                                     style: const TextStyle(
                                                         color: AppTheme
                                                             .onSurfaceVariant,

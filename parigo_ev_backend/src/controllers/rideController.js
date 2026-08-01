@@ -61,7 +61,7 @@ const getActiveRide = async (req, res) => {
     // Fetch driver details if assigned
     if (ride.assignedDriverId) {
       try {
-        const dRes = await db.query('SELECT name, phone, vehicle_type, profile_picture_url FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
+        const dRes = await db.query('SELECT name, phone, vehicle_type, profile_picture_url, rc_number FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
         if (dRes.rows.length > 0) {
           ride.driverDetails = dRes.rows[0];
         }
@@ -87,7 +87,7 @@ const getHistory = async (req, res) => {
     const uid = result.rows[0].uid;
     
     const ridesRes = await db.query(
-      `SELECT r.*, d.name as driver_name, d.phone as driver_phone, d.profile_picture_url as driver_pic, d.vehicle_type
+      `SELECT r.*, d.name as driver_name, d.phone as driver_phone, d.profile_picture_url as driver_pic, d.vehicle_type, d.rc_number
        FROM rides_history r
        LEFT JOIN drivers d ON r.driver_uid = d.driver_uid
        WHERE r.customer_uid = $1 
@@ -150,6 +150,7 @@ const getHistory = async (req, res) => {
           name: row.driver_name,
           phone: row.driver_phone,
           vehicle_type: row.vehicle_type,
+          rc_number: row.rc_number,
           profile_picture_url: row.driver_pic
         }
       };
@@ -517,7 +518,7 @@ const getCustomerRides = async (req, res) => {
     for (let ride of rides) {
       if (ride.assignedDriverId) {
         try {
-           const result = await db.query('SELECT name, phone, vehicle_type, profile_picture_url FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
+           const result = await db.query('SELECT name, phone, vehicle_type, profile_picture_url, rc_number FROM drivers WHERE driver_uid = $1', [ride.assignedDriverId]);
            if (result.rows.length > 0) {
              ride.driverDetails = result.rows[0];
            }
