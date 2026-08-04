@@ -19,6 +19,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'core/language_provider.dart';
 import 'services/admin_background_service.dart';
+import 'widgets/connectivity_wrapper.dart';
 
 void _reportCrashToAdmin(dynamic error, StackTrace? stack) {
   try {
@@ -89,6 +90,7 @@ class ParigoEVApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Parigo EV',
+      builder: (context, child) => ConnectivityWrapper(child: child!),
       debugShowCheckedModeBanner: false,
       navigatorKey: appNavigatorKey,
       theme: AppTheme.lightTheme,
