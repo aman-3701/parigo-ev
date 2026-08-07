@@ -56,10 +56,10 @@ class _PolicyView extends StatelessWidget {
       case PolicyType.terms:
         title = 'Terms and Conditions';
         content = '''
-Last Updated: July 2026
+Last Updated: August 2026
 
-1. Acceptance of Terms
-By accessing and using the Parigo EV application ("App"), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use our services.
+1. Acceptance of Terms & Eligibility
+By accessing and using the Parigo EV application ("App"), you agree to be bound by these Terms and Conditions. You must be at least 18 years old to register and request rides. If you do not agree, please do not use our services.
 
 2. Description of Service
 Parigo EV provides a technology platform connecting users seeking transportation with independent drivers operating electric vehicles (EVs).
@@ -74,30 +74,33 @@ All payments must be made through the App via Parigo Wallet, UPI, or supported C
 
 5. Limitation of Liability
 Parigo EV acts as an intermediary. We are not liable for direct, indirect, or consequential damages arising from the use of our transportation services.
+
+6. Governing Law & Contact
+These terms are governed by the laws of India. For any questions or support, please contact us at parigoev@gmail.com or visit www.parigoev.in.
 ''';
         break;
       case PolicyType.privacy:
         title = 'Privacy Policy';
         content = '''
-Last Updated: July 2026
+Last Updated: August 2026
 
 1. Information We Collect
 We collect information you provide directly to us (name, phone, email) and data collected automatically (location data, device information, usage metrics).
 
-2. How We Use Your Information
+2. How We Use Your Information (Background Location)
 - To provide, maintain, and improve our services.
+- Parigo EV collects location data in the background to enable ride tracking and fare calculation even when the app is closed or not in use.
 - To process payments and send receipts.
-- To track rides in real-time for safety and navigation.
 - To send promotional communications (if opted in).
 
-3. Sharing of Information
-We share your pickup/dropoff locations and first name with your assigned driver. We do not sell your personal data to third parties. We may share data with law enforcement if required by law.
+3. Sharing of Information & Third Parties
+We share your pickup/dropoff locations and first name with your assigned driver. We do not sell your personal data. We use third-party services including Firebase Crashlytics, Google Maps, and Razorpay/PhonePe, which have their own privacy policies. We may share data with law enforcement if required by law.
 
 4. Data Security
-We implement industry-standard encryption to protect your data. Payment information is securely handled by our payment gateways (Razorpay/PhonePe) and is not stored on our servers.
+We implement industry-standard encryption to protect your data. Payment information is securely handled by our payment gateways and is not stored on our servers.
 
-5. Your Rights
-You may request account deletion or a copy of your data by contacting support.
+5. Your Rights & Data Deletion
+You may request account and data deletion by contacting us at parigoev@gmail.com. We will process your deletion request in accordance with applicable laws. You can view our full privacy policy at www.parigoev.in.
 ''';
         break;
       case PolicyType.refund:
