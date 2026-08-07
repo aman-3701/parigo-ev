@@ -55,25 +55,23 @@ class _SplashScreenState extends State<SplashScreen>
     // Request notification permission for Android 13+ on startup
     await Permission.notification.request();
 
-    final phonePermissionStatus = await Permission.phone.status;
-    if (!phonePermissionStatus.isGranted) {
-      if (mounted) {
-        final accepted = await PermissionDisclosureDialog.show(
-          context,
-          title: 'Phone & Calls Access',
-          message: 'Parigo EV needs access to manage phone calls so you can securely contact drivers or customers directly from the app during active rides.',
-          icon: Icons.phone,
-        );
-        if (accepted == true) {
-          await Permission.phone.request();
-        }
-      }
-    }
-
     // Wait for the minimum splash time to pass before navigating
     await minSplashDuration;
 
     if (!mounted) return;
+
+    final phonePermissionStatus = await Permission.phone.status;
+    if (!phonePermissionStatus.isGranted) {
+      final accepted = await PermissionDisclosureDialog.show(
+        context,
+        title: 'Phone & Calls Access',
+        message: 'Parigo EV needs access to manage phone calls so you can securely contact drivers or customers directly from the app during active rides.',
+        icon: Icons.phone,
+      );
+      if (accepted == true) {
+        await Permission.phone.request();
+      }
+    }
 
     Widget nextScreen = const OnboardingScreen();
 
