@@ -10,7 +10,6 @@ import 'customer_main_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import '../widgets/permission_disclosure_dialog.dart';
 import 'package:parigo_ev_app/core/api_client.dart';
-import 'package:permission_handler/permission_handler.dart';
 class EditProfileScreen extends StatefulWidget {
   final String? initialPhone;
   final bool isRegistration;
@@ -144,20 +143,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _isLoading = false;
         });
         return;
-      }
-      
-      // Request Phone Permission
-      final phonePermissionStatus = await Permission.phone.status;
-      if (!phonePermissionStatus.isGranted) {
-        final accepted = await PermissionDisclosureDialog.show(
-          context,
-          title: 'Phone & Calls Access',
-          message: 'Parigo EV needs access to manage phone calls so you can securely contact drivers or customers directly from the app during active rides.',
-          icon: Icons.phone,
-        );
-        if (accepted == true) {
-          await Permission.phone.request();
-        }
       }
     }
 
