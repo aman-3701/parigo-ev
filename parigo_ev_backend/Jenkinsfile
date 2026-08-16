@@ -1,0 +1,248 @@
+pipeline {
+
+    agent any
+
+    environment {
+
+        APP_NAME = 'parigo-backend'
+        BACKEND_DIR = 'parigo_ev_backend'
+
+        // Nexus
+        NEXUS_URL = '10.0.12.134:5000'
+        IMAGE_NAME = 'parigo-backend'
+        NEXUS_CREDENTIALS = 'nexus-credentials'
+
+        // EKS
+        AWS_REGION = 'ap-south-1'
+        EKS_CLUSTER = 'parigo-prod-eks'
+
+        // Your existing Kubernetes namespace
+        K8S_NAMESPACE = 'parigo-prod'
+        K8S_DEPLOYMENT = 'parigo-backend'
+        K8S_CONTAINER = 'parigo-backend'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Verify Source') {
+            steps {
+                sh '''
+                    set -e
+                    pwd
+                    ls -la
+                    ls -la ${BACKEND_DIR}
+                    cat ${BACKEND_DIR}/package.json
+                '''
+            }
+        }
+
+        stage('NPM Install') {
+            steps {
+                dir("${BACKEND_DIR}") {
+                    sh '''
+                        set -e
+
+                        node --version
+                        npm --version
+
+                        npm ci
+                    '''
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir("${BACKEND_DIR}") {
+                    sh '''
+                        set -e
+
+                        if npm run | grep -q "test"; then
+                            npm test
+                        else
+                            echo "No test script found. Skipping tests."
+                        fi
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                    set -e
+
+                    docker build \
+                        -t ${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER} \
+                        ./parigo_ev_backend
+
+                    docker images | grep ${IMAGE_NAME}
+                '''
+            }
+        }
+
+        stage('Nexus Login') {
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: "${NEXUS_CREDENTIALS}",
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        set +x
+
+                        echo "$NEXUS_PASSWORD" | docker login \
+                            ${NEXUS_URL} \
+                            --username "$NEXUS_USER" \
+                            --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Image to Nexus') {
+            steps {
+                sh '''
+                    set -e
+
+                    docker push \
+                        ${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}
+
+                    echo "Image pushed successfully:"
+                    echo "${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                '''
+            }
+        }
+
+        stage('Configure EKS') {
+            steps {
+                sh '''
+                    set -e
+
+                    aws sts get-caller-identity
+
+                    aws eks update-kubeconfig \
+                        --region ${AWS_REGION} \
+                        --name ${EKS_CLUSTER}
+
+                    kubectl get nodes
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    set -e
+
+                    kubectl -n ${K8S_NAMESPACE} apply \
+                        -f k8s/deployment.yaml
+
+                    kubectl -n ${K8S_NAMESPACE} apply \
+                        -f k8s/service.yaml
+                '''
+            }
+        }
+
+        stage('Update Image') {
+            steps {
+                sh '''
+                    set -e
+
+                    IMAGE="${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}"
+
+                    echo "Deploying image:"
+                    echo "$IMAGE"
+
+                    kubectl -n ${K8S_NAMESPACE} set image \
+                        deployment/${K8S_DEPLOYMENT} \
+                        ${K8S_CONTAINER}=${IMAGE}
+
+                    kubectl -n ${K8S_NAMESPACE} annotate deployment \
+                        ${K8S_DEPLOYMENT} \
+                        kubernetes.io/change-cause="Jenkins Build ${BUILD_NUMBER}" \
+                        --overwrite
+                '''
+            }
+        }
+
+        stage('Rollout') {
+            steps {
+                sh '''
+                    set -e
+
+                    kubectl -n ${K8S_NAMESPACE} rollout status \
+                        deployment/${K8S_DEPLOYMENT} \
+                        --timeout=300s
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    echo "========== DEPLOYMENT =========="
+
+                    kubectl -n ${K8S_NAMESPACE} get deployment
+
+                    echo "========== PODS =========="
+
+                    kubectl -n ${K8S_NAMESPACE} get pods -o wide
+
+                    echo "========== SERVICE =========="
+
+                    kubectl -n ${K8S_NAMESPACE} get svc
+
+                    echo "========== IMAGE =========="
+
+                    kubectl -n ${K8S_NAMESPACE} get deployment \
+                        ${K8S_DEPLOYMENT} \
+                        -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+                    echo
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo """
+            =========================================
+            DEPLOYMENT SUCCESSFUL
+            =========================================
+
+            Application : ${APP_NAME}
+            Build       : ${BUILD_NUMBER}
+            Image       : ${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}
+            Namespace   : ${K8S_NAMESPACE}
+            Cluster     : ${EKS_CLUSTER}
+
+            =========================================
+            """
+        }
+
+        failure {
+            echo "DEPLOYMENT FAILED - Check the failed stage."
+        }
+
+        always {
+            sh '''
+                docker logout ${NEXUS_URL} || true
+            '''
+
+            cleanWs()
+        }
+    }
+}
