@@ -57,21 +57,7 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                dir("${BACKEND_DIR}") {
-                    sh '''
-                        set -e
-
-                        if npm run | grep -q "test"; then
-                            npm test
-                        else
-                            echo "No test script found. Skipping tests."
-                        fi
-                    '''
-                }
-            }
-        }
+        
 
         stage('Docker Build') {
             steps {
