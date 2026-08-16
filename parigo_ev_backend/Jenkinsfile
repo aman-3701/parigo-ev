@@ -78,7 +78,7 @@ pipeline {
 
                 withCredentials([
                     usernamePassword(
-                        credentialsId: "${NEXUS_CREDENTIALS}",
+                        credentialsId: "${nexus_cred}",
                         usernameVariable: 'NEXUS_USER',
                         passwordVariable: 'NEXUS_PASSWORD'
                     )
