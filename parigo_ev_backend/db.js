@@ -180,7 +180,6 @@ const initDb = async () => {
 };
 
 // Initialize DB on startup
-initDb();
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
